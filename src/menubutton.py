@@ -42,13 +42,15 @@ class MenuButton(pygame.sprite.Sprite):
             self.hovered = False
 
     def draw(self, surface):
-        # If hovered, move arrow right and draw "Play" to the left
         offset = 100 if self.hovered else 0
         arrow_pos = (self.rect.x + offset, self.rect.y)
         if self.hovered:
-            # Draw "Play" text to the left of the arrow
+            # Draw "Play" text with shadow to the left of the arrow
             text_x = arrow_pos[0] - self.text_surface.get_width() - 10
             text_y = arrow_pos[1] + (self.image.get_height() - self.text_surface.get_height()) // 2
+            # Shadow
+            shadow_surface = self.font.render("Play", True, (40, 40, 40))
+            surface.blit(shadow_surface, (text_x + 2, text_y + 2))
             surface.blit(self.text_surface, (text_x, text_y))
         surface.blit(self.image, arrow_pos)
         # If not hovered, draw arrow in original position (already handled by the image.blit call)
