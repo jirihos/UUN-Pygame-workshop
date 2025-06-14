@@ -1,22 +1,23 @@
 import pygame
+from car_sprite import CarSprite
 
-class Game():
+class Game:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
+        self.sprites = pygame.sprite.Group()
+        self.car = CarSprite(screen.get_width() // 2, screen.get_height() // 2)
+        self.sprites.add(self.car)
+        self.font = pygame.font.SysFont(None, 36)
 
     def loop(self, dt):
-        # Event
+        keys = pygame.key.get_pressed()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                # TODO
-        
-        # Update
-        myfont = pygame.font.SysFont("None", 50)
-        text = myfont.render(f"Game", True, (250,80,100))
+                exit()
 
-        # Render
-        self.screen.fill((0, 0, 0))
-        self.screen.blit(text, (self.screen.get_width()/2, self.screen.get_height()/2))
-
+        self.car.update(keys)
+        self.screen.fill((30, 30, 30))
+        self.sprites.draw(self.screen)
         pygame.display.flip()
