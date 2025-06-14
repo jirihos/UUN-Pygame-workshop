@@ -1,72 +1,47 @@
-import pygame, sys
+import pygame
 from scenes.mainmenu import MainMenu
 from scenes.game import Game
 
-BLACK = (0,0,0)
-PURPLE = (150, 10, 100)
-RED = (255, 0, 0)
-GREEN = (0,255, 0)
-BLUE  = (0, 0, 255)
-WHITE = (0, 0, 0)
+class Main():
+    def __init__(self):
+        self.WIDTH = 800
+        self.HEIGHT = 600
+        self.FPS = 45
 
-WIDTH = 800
-HEIGHT = 600
-FPS = 45
+        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        pygame.display.set_caption("My caption of the game")
 
+        self.clock = pygame.time.Clock()
+        self.running = False
 
-pygame.init()
-
-# Grafika!
-
-
-# Definice spritu
-
-
-# Nastaveni okna aj.
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("My caption of the game")
-
-
-# hodiny - FPS CLOCK / heart rate
-clock = pygame.time.Clock()
-
-# Kolecke spritů
-my_sprites = pygame.sprite.Group()
-
-# start:
-running = True
-
-current_scene = None
-def switch_to_game():
-    global current_scene
-    current_scene = Game(screen)
-current_scene = MainMenu(screen, lambda: switch_to_game())
-
-# cyklus udrzujici okno v chodu
-while running:
-    # FPS kontrola / jeslti bezi dle rychlosti!
-    dt = clock.tick(FPS)
-
-    if current_scene is not None:
-        current_scene.loop(dt)
-        continue
-
-    # Event
-    for event in pygame.event.get():
-        # print(event) - pokud potrebujete info co se zmacklo.
-        if event.type == pygame.QUIT:
-            running = False
+        self.current_scene = None
+        def switch_to_game():
+            self.current_scene = Game(self.screen)
+        self.current_scene = MainMenu(self.screen, lambda: switch_to_game())
     
+    def run(self):
+        pygame.init()
 
-    # Update
-    my_sprites.update()
-    
+        self.running = True
 
-    # Render
-    # screen.fill(BLACK)
-    # my_sprites.draw(screen)
-    # pygame.display.flip()
-    
+        while self.running:
+            # FPS kontrola / jeslti bezi dle rychlosti!
+            dt = self.clock.tick(self.FPS)
+
+            if self.current_scene is not None:
+                self.current_scene.loop(dt)
+                continue
+
+            # Event
+            for event in pygame.event.get():
+                # print(event) - pokud potrebujete info co se zmacklo.
+                if event.type == pygame.QUIT:
+                    running = False
+            
 
 
-pygame.quit()
+        pygame.quit()
+
+
+main = Main()
+main.run()
