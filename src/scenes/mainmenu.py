@@ -35,8 +35,8 @@ class MainMenu():
         margin = 12
         self.buttons.add(MenuButton(
             margin + icon_size // 2,
-            self.screen.get_height() - margin - icon_size // 2,
-            lambda: self.exit_game(),
+            self.main.screen.get_height() - margin - icon_size // 2,
+            lambda: self.main.quit(),
             text="Exit",
             play_color=(220, 40, 40),
             icon_idle=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
@@ -50,7 +50,7 @@ class MainMenu():
         # Event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.main.running = False
+                self.main.quit()
 
         # Update
         self.intro_timer -= dt
@@ -125,6 +125,3 @@ class MainMenu():
                 button.draw(screen)
 
         pygame.display.flip()
-
-    def exit_game(self):
-        print("EXIT")

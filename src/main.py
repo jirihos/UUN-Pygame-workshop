@@ -32,6 +32,9 @@ class Main():
                 self.current_scene.loop(dt)
 
         pygame.quit()
+    
+    def quit(self):
+        self.running = False
 
 if __name__ == "__main__":
     main = Main()

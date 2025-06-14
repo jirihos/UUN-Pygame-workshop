@@ -15,7 +15,7 @@ class Game:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.main.running = False
+                self.main.quit()
 
         self.car.update(keys)
         screen.fill((30, 30, 30))
