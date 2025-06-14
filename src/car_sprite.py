@@ -23,7 +23,7 @@ class CarSprite(pygame.sprite.Sprite):
         self.max_steering = 3
         self.steering_return = 0.1
 
-    def update(self, keys=None):
+    def update(self, game, camera_x, camera_y, keys=None):
         if keys is None:
             keys = pygame.key.get_pressed()
 
@@ -56,8 +56,10 @@ class CarSprite(pygame.sprite.Sprite):
             rad = math.radians(self.angle)
             dx = -math.sin(rad) * self.speed
             dy = -math.cos(rad) * self.speed
-            self.pos.x += dx
-            self.pos.y += dy
+            if game.is_walkable(self.pos.x + dx, self.pos.y + dy):
+                self.pos.x += dx
+                self.pos.y += dy
+            
 
         self.image = pygame.transform.rotate(self.original_image, self.angle)
-        self.rect = self.image.get_rect(center=self.pos)
+        self.rect = self.image.get_rect(center=(self.pos-pygame.Vector2(camera_x, camera_y)))

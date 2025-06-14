@@ -5,8 +5,8 @@ from scenes.game import Game
 
 class Main():
     def __init__(self):
-        self.WIDTH = 768
-        self.HEIGHT = 768
+        self.WIDTH = 1200
+        self.HEIGHT = 800
         self.FPS = 60
 
         pygame.init()
