@@ -10,16 +10,16 @@ class MainMenu():
         self.screen = screen
         self.switch_to_game = switch_to_game
 
-        # Load background image
-        base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
-        self.background = pygame.image.load(os.path.join(base_path, "tiles/menu/background.png")).convert()
-
-        # Animated title setup
-        font_path = os.path.join(base_path, "fonts/Kenney_Future.ttf")
-        self.title_font = pygame.font.Font(font_path, 64)
-        self.title_color = (252, 186, 3)
         self.title_text = "Ruber Car Game"
+        self.title_color = (252, 186, 3)
+        self.title_font = pygame.font.SysFont(None, 96)
         self.title_anim_time = 0
+
+        # Definujte base_path zde:
+        base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
+
+        # Load background image or fill color
+        self.background = pygame.image.load(os.path.join(base_path, "tiles/menu/background.png")).convert()
 
         # Buttons
         self.buttons = pygame.sprite.Group()
@@ -27,7 +27,22 @@ class MainMenu():
             self.screen.get_width() // 2,
             self.screen.get_height() // 2,
             lambda: self.start_game(),
+            text="Play",
             play_color=self.title_color
+        ))
+        # Add Exit button
+        # Position Exit button at the bottom right corner
+        icon_size = 36
+        margin = 12
+        self.buttons.add(MenuButton(
+            margin + icon_size // 2,
+            self.screen.get_height() - margin - icon_size // 2,
+            lambda: self.exit_game(),
+            text="Exit",
+            play_color=(220, 40, 40),
+            icon_idle=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
+            icon_hover=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
+            icon_click=os.path.join(base_path, "tiles/menu/icon_cross_grey.png")
         ))
 
     def start_game(self):
@@ -113,3 +128,6 @@ class MainMenu():
                 button.draw(self.screen)
 
         pygame.display.flip()
+
+    def exit_game(self):
+        print("EXIT")
