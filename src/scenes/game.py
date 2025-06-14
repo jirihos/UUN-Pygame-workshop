@@ -15,9 +15,10 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                exit()
+                # TODO
 
         self.car.update(keys)
         self.screen.fill((30, 30, 30))
         self.sprites.draw(self.screen)
+
         pygame.display.flip()
