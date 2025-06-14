@@ -19,7 +19,7 @@ FPS = 45
 # Pygame initialization
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Rubert Car Game")
+pygame.display.set_caption("Ruber Car Game")
 clock = pygame.time.Clock()
 
 # ===== Scene switching =====
