@@ -11,21 +11,27 @@ class Game:
         self.sprites.add(self.car)
         self.font = pygame.font.SysFont(None, 36)
 
-        # Definujte base_path zde:
         base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
-        self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap_packed.png")).convert_alpha()
 
+        # === Konfigurace sprite sheetu ===
         self.SPRITE_TILE_SIZE = 16     # velikost jedné dlaždice v obrázku
         self.TILE_SPACING = 1          # mezera mezi dlaždicemi
         self.TILE_MARGIN = 0           # okraje kolem sprite sheetu
+
+        # === Konstanty ===
         self.tile_size = 64            # velikost dlaždice na obrazovce
 
+        # === Načtení sprite sheetu ===
+        self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap_packed.png")).convert_alpha()
+
+        # === Funkce pro vystřižení dlaždice ===
         def get_tile(x, y):
             px = self.TILE_MARGIN + x * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             py = self.TILE_MARGIN + y * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             rect = pygame.Rect(px, py, self.SPRITE_TILE_SIZE, self.SPRITE_TILE_SIZE)
             return self.sprite_sheet.subsurface(rect)
 
+        # === Načtení obrázků dlaždic podle ID ===
         self.tile_images = {
             i: pygame.transform.scale(get_tile(*coords), (self.tile_size, self.tile_size))
             for i, (coords, _) in tile_dict.items()
