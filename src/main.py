@@ -29,6 +29,14 @@ class Main():
         while self.running:
             dt = self.clock.tick(self.FPS)
 
+            # --- Event handling ---
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                elif hasattr(self.current_scene, "handle_event"):
+                    self.current_scene.handle_event(event)
+
+            # --- Scene logic and rendering ---
             if self.current_scene is not None:
                 self.current_scene.loop(dt)
 
