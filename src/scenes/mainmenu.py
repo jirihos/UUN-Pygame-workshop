@@ -106,9 +106,3 @@ class MainMenu():
                 button.draw(self.screen)
 
         pygame.display.flip()
-
-    def handle_event(self, event):
-        # Forward events to all buttons
-        for button in self.buttons:
-            if hasattr(button, "handle_event"):
-                button.handle_event(event)

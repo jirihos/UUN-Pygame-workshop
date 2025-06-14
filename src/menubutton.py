@@ -54,11 +54,3 @@ class MenuButton(pygame.sprite.Sprite):
             surface.blit(self.text_surface, (text_x, text_y))
         surface.blit(self.image, arrow_pos)
         # If not hovered, draw arrow in original position (already handled by the image.blit call)
-
-    def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.clicked = True
-                self.callback()
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            self.clicked = False
