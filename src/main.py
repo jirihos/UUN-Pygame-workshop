@@ -7,7 +7,7 @@ class Main():
     def __init__(self):
         self.WIDTH = 768
         self.HEIGHT = 768
-        self.FPS = 45
+        self.FPS = 60
 
         pygame.init()
 
