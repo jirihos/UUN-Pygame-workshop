@@ -5,8 +5,8 @@ from menubutton import MenuButton
 
 class MainMenu():
     def __init__(self, screen: pygame.Surface, switch_to_game):
-        self.intro_timer = 10000
-        self.intro_duration = 10000
+        self.intro_duration = 3000
+        self.intro_timer = self.intro_duration
         self.screen = screen
         self.switch_to_game = switch_to_game
 
@@ -34,6 +34,13 @@ class MainMenu():
         self.switch_to_game()
 
     def loop(self, dt):
+        # Event
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                # TODO
+
+        # Update
         self.intro_timer -= dt
         self.title_anim_time += dt / 1000  # seconds
 
