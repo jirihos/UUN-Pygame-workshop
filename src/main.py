@@ -17,11 +17,10 @@ class Main():
         self.clock = pygame.time.Clock()
         self.running = False
 
-        self.current_scene = None
-
-        def switch_to_game():
-            self.current_scene = Game(self.screen)
-        self.current_scene = MainMenu(self.screen, switch_to_game)
+        self.current_scene = MainMenu(self)
+    
+    def start_game(self):
+        self.current_scene = Game(self)
 
     def run(self):
         self.running = True
