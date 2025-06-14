@@ -9,8 +9,8 @@ GREEN = (0,255, 0)
 BLUE  = (0, 0, 255)
 WHITE = (0, 0, 0)
 
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 768
+HEIGHT = 768
 FPS = 45
 
 
