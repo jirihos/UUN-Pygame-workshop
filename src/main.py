@@ -1,6 +1,7 @@
-import pygame,sys
+import pygame, sys
+from scenes.mainmenu import MainMenu
+from scenes.game import Game
 
-# konstanty a fce které neinteragují s pygame!
 BLACK = (0,0,0)
 PURPLE = (150, 10, 100)
 RED = (255, 0, 0)
@@ -12,12 +13,8 @@ WIDTH = 800
 HEIGHT = 600
 FPS = 45
 
-#fce které interagují s pygame!
 
-
-## Start pygame + start modulů! 
 pygame.init()
-pygame.mixer.init()
 
 # Grafika!
 
@@ -39,10 +36,20 @@ my_sprites = pygame.sprite.Group()
 # start:
 running = True
 
+current_scene = None
+def switch_to_game():
+    global current_scene
+    current_scene = Game(screen)
+current_scene = MainMenu(screen, lambda: switch_to_game())
+
 # cyklus udrzujici okno v chodu
 while running:
     # FPS kontrola / jeslti bezi dle rychlosti!
-    clock.tick(FPS)
+    dt = clock.tick(FPS)
+
+    if current_scene is not None:
+        current_scene.loop(dt)
+        continue
 
     # Event
     for event in pygame.event.get():
@@ -56,9 +63,9 @@ while running:
     
 
     # Render
-    screen.fill(BLACK)
-    my_sprites.draw(screen)
-    pygame.display.flip()
+    # screen.fill(BLACK)
+    # my_sprites.draw(screen)
+    # pygame.display.flip()
     
 
 
