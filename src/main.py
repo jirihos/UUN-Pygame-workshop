@@ -1,72 +1,55 @@
-import pygame, sys
+import pygame
+import sys
 from scenes.mainmenu import MainMenu
 from scenes.game import Game
 
-BLACK = (0,0,0)
-PURPLE = (150, 10, 100)
-RED = (255, 0, 0)
-GREEN = (0,255, 0)
+# Colors (not used yet, but you can use them)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED   = (255, 0, 0)
+GREEN = (0, 255, 0)
 BLUE  = (0, 0, 255)
-WHITE = (0, 0, 0)
+PURPLE = (150, 10, 100)
 
+# Dimensions and FPS
 WIDTH = 768
 HEIGHT = 768
 FPS = 45
 
-
+# Pygame initialization
 pygame.init()
-
-# Grafika!
-
-
-# Definice spritu
-
-
-# Nastaveni okna aj.
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("My caption of the game")
-
-
-# hodiny - FPS CLOCK / heart rate
+pygame.display.set_caption("Rubert Car Game")
 clock = pygame.time.Clock()
 
-# Kolecke spritů
-my_sprites = pygame.sprite.Group()
-
-# start:
-running = True
-
+# ===== Scene switching =====
 current_scene = None
 def switch_to_game():
     global current_scene
     current_scene = Game(screen)
-current_scene = MainMenu(screen, lambda: switch_to_game())
 
-# cyklus udrzujici okno v chodu
+# Start the default scene (menu)
+current_scene = MainMenu(screen, switch_to_game)
+
+# ===== Main loop =====
+running = True
 while running:
-    # FPS kontrola / jeslti bezi dle rychlosti!
     dt = clock.tick(FPS)
 
-    if current_scene is not None:
-        current_scene.loop(dt)
-        continue
-
-    # Event
+    # Events
     for event in pygame.event.get():
-        # print(event) - pokud potrebujete info co se zmacklo.
         if event.type == pygame.QUIT:
             running = False
-    
 
-    # Update
-    my_sprites.update()
-    
+        if hasattr(current_scene, "handle_event"):
+            result = current_scene.handle_event(event)
+            if result == "exit":
+                running = False
 
-    # Render
-    # screen.fill(BLACK)
-    # my_sprites.draw(screen)
-    # pygame.display.flip()
-    
+    # Logic + rendering of the current scene
+    if current_scene is not None:
+        current_scene.loop(dt)
 
-
+# Exit
 pygame.quit()
+sys.exit()

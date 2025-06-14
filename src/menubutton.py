@@ -1,15 +1,33 @@
 import pygame
+import os
 
 class MenuButton(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, callback):
+    def __init__(self, x, y, callback):
         super().__init__()
-        self.image = pygame.Surface((width, height))
-        self.image.fill((200, 30, 30))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        base_path = os.path.dirname(__file__)
+        self.image_idle = pygame.image.load(os.path.join(base_path, "tiles/menu/arrow_decorative_e_green.png")).convert_alpha()
+        self.image_hover = pygame.image.load(os.path.join(base_path, "tiles/menu/arrow_decorative_e_yellow.png")).convert_alpha()
+        self.image_click = pygame.image.load(os.path.join(base_path, "tiles/menu/arrow_decorative_e_grey.png")).convert_alpha()
+
+        self.image = self.image_idle
+        self.rect = self.image.get_rect(center=(x, y))
+
         self.callback = callback
-    
+        self.clicked = False
+
     def update(self):
-        left_mouse_btn = pygame.mouse.get_pressed()[0]
-        if left_mouse_btn and self.rect.collidepoint(pygame.mouse.get_pos()):
-            self.callback()
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+
+        if self.rect.collidepoint(mouse_pos):
+            if mouse_pressed:
+                self.image = self.image_click
+                if not self.clicked:
+                    self.clicked = True
+                    self.callback()
+            else:
+                self.image = self.image_hover
+                self.clicked = False
+        else:
+            self.image = self.image_idle
+            self.clicked = False
