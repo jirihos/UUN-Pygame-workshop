@@ -1,15 +1,16 @@
 import pygame
-import sys
 
 class Game():
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
 
-    def handle_event(self, event):
-        if event.type == pygame.QUIT:
-            return "exit"
-
     def loop(self, dt):
+        # Event
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                # TODO
+
         # Update
         myfont = pygame.font.SysFont("None", 50)
         text = myfont.render("Game", True, (250, 80, 100))

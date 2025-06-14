@@ -32,10 +32,13 @@ class MainMenu():
     def start_game(self):
         self.switch_to_game()
 
-    def handle_event(self, event):
-        pass
-
     def loop(self, dt):
+        # Event
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                # TODO
+
         # Update
         self.intro_timer -= dt
         self.title_anim_time += dt / 1000  # seconds

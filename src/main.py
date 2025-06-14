@@ -5,10 +5,11 @@ from scenes.game import Game
 
 class Main():
     def __init__(self):
-        pygame.init()
         self.WIDTH = 768
         self.HEIGHT = 768
         self.FPS = 45
+
+        pygame.init()
 
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption("Ruber Car Game")
@@ -28,17 +29,6 @@ class Main():
         while self.running:
             dt = self.clock.tick(self.FPS)
 
-            # Event handling
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-
-                if hasattr(self.current_scene, "handle_event"):
-                    result = self.current_scene.handle_event(event)
-                    if result == "exit":
-                        self.running = False
-
-            # Scene logic and rendering
             if self.current_scene is not None:
                 self.current_scene.loop(dt)
 
