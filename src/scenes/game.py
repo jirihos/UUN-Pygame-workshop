@@ -72,7 +72,7 @@ class Game:
         self.new_job()
 
         # === Minimap ===
-        self.minimap_scale = 1.5
+        self.minimap_scale = 2
         self.minimap_surface = self._create_minimap()
 
         # Load PNG backgrounds for minimap and dashboard
@@ -119,6 +119,8 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     self.car.toggle_handbrake()
+                elif event.key == pygame.K_ESCAPE:
+                    self.main.quit()
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
