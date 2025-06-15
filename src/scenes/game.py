@@ -13,6 +13,8 @@ class Game:
         self.car = CarSprite(400,500)
         self.sprites.add(self.car)
         self.brake_pressed = False
+        self.money = 0 
+
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -147,6 +149,7 @@ class Game:
             elif self.job_state == "dropoff":
                 if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
+                    self.money += random.randint(15,25)
                     self.new_job()
 
         screen.fill((50, 50, 50))
@@ -268,6 +271,20 @@ class Game:
             py = circle_y - p_surface.get_height() // 2
             self.main.screen.blit(p_shadow, (px + 2, py + 2))
             self.main.screen.blit(p_surface, (px, py))
+
+        # === Display Cash ===
+        cash_text = f"${self.money}"
+        font_cash = pygame.font.Font(self.font_path, 36)
+
+        cash_surface = font_cash.render(cash_text, True, (255, 255, 255))
+        cash_shadow = font_cash.render(cash_text, True, (40, 40, 40))
+
+        cash_x = 20
+        cash_y = 20
+
+        self.main.screen.blit(cash_shadow, (cash_x + 2, cash_y + 2))
+        self.main.screen.blit(cash_surface, (cash_x, cash_y))
+
 
     def draw_minimap(self):
         """Displays the minimap in the bottom right corner and highlights the car position, pickup and delivery locations."""
