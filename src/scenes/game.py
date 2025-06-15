@@ -457,7 +457,7 @@ class Game:
             for x, tile_id in enumerate(row):
                 pos = (x * self.tile_size - camera_x, y * self.tile_size - camera_y)
                 tile_img = self.tile_images.get(tile_id)
-                if tile_img:
+                if tile_img and pos[0] > -self.tile_size and pos[0] < self.main.WIDTH and pos[1] > -self.tile_size and pos[1] < self.main.HEIGHT:
                     screen.blit(tile_img, pos)
 
         self.sprites.draw(screen)
