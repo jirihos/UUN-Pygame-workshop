@@ -137,6 +137,18 @@ class Game:
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
 
+        # === Job Progress Logic ===
+        if self.current_job and self.job_state:
+            if self.job_state == "pickup":
+                if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
+                    print("[JOB] Passenger picked up.")
+                    self.job_state = "dropoff"
+
+            elif self.job_state == "dropoff":
+                if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
+                    print("[JOB] Passenger dropped off. Job complete.")
+                    self.new_job()
+
         screen.fill((50, 50, 50))
 
         for y, row in enumerate(self.tile_map):
@@ -152,19 +164,21 @@ class Game:
 
         self.sprites.draw(screen)
 
+        small_font = pygame.font.Font(self.font_path, 32)
+
         # Draw FPS only if toggled on
         if self.show_fps:
-            small_font = pygame.font.Font(self.font_path, 32)
             fps_text = f"FPS: {self.main.clock.get_fps():.0f}"
             fps_shadow = small_font.render(fps_text, True, (40, 40, 40))
             fps_surface = small_font.render(fps_text, True, (0, 255, 0))
             screen.blit(fps_shadow, (2, 2))
             screen.blit(fps_surface, (0, 0))
 
-        # if self.current_job is not None:
-        #     screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-        #     screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
-        #     screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
+        if self.current_job is not None:
+             screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
+             screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
+             screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
+    
 
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
@@ -265,13 +279,14 @@ class Game:
 
         # Draw pickup and delivery locations if job exists
         if self.current_job is not None:
-            # Pickup location - blue dot
-            px, py = self.current_job.pickup_tile_loc
-            pickup_x = int(px * scale)
-            pickup_y = int(py * scale)
-            pygame.draw.circle(minimap, (0, 120, 255), (pickup_x, pickup_y), max(3, int(3 * scale)))
+            if self.job_state == "pickup":
+                # Show pickup location (blue dot) only if still in pickup phase
+                px, py = self.current_job.pickup_tile_loc
+                pickup_x = int(px * scale)
+                pickup_y = int(py * scale)
+                pygame.draw.circle(minimap, (0, 120, 255), (pickup_x, pickup_y), max(3, int(3 * scale)))
 
-            # Delivery location - green dot
+            # Always show delivery location (green dot) while job exists
             dx, dy = self.current_job.delivery_tile_loc
             delivery_x = int(dx * scale)
             delivery_y = int(dy * scale)
@@ -291,6 +306,15 @@ class Game:
         minimap_center_x = border_rect.x + (border_rect.width - minimap_rect.width) // 2
         minimap_center_y = border_rect.y + (border_rect.height - minimap_rect.height) // 2
         self.main.screen.blit(minimap, (minimap_center_x, minimap_center_y))
+
+    def tile_to_world(self, tile_pos):
+        x, y = tile_pos
+        return pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
+
+    def is_at_tile(self, tile_pos, radius=50):
+        world_pos = self.tile_to_world(tile_pos)
+        return self.car.pos.distance_to(world_pos) <= radius
+
 
     def _draw_text(self, text, x, y, color=(255, 255, 255), size=36):
         # Use Kenney_Future font for all text
