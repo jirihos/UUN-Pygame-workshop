@@ -95,11 +95,13 @@ class Game:
         self.show_fps = False  # FPS display toggle
 
     def new_job(self):
+        # If there are not enough pickup locations, do not create a job
         if len(self.pickup_tile_locations) < 2:
             self.current_job = None
             self.job_state = None
             return
         
+        # Randomly select two different pickup locations for pickup and delivery
         locs = random.sample(self.pickup_tile_locations, 2)
         self.current_job = Job(locs[0], locs[1])
         self.job_state = "pickup"
@@ -119,6 +121,7 @@ class Game:
         return surf
 
     def is_walkable(self, x, y): 
+        # Returns True if the tile at (x, y) is walkable
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
         if 0 <= tile_y < len(self.tile_map) and 0 <= tile_x < len(self.tile_map[0]):
@@ -127,11 +130,13 @@ class Game:
         return False
 
     def is_on_pump_tile(self):
+        # Returns True if the car is currently on a pump tile
         car_tile_x = int(self.car.pos.x) // self.tile_size
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.pump_tile_locations
 
     def get_nearest_pump_tile(self):
+        # Finds the nearest pump tile to the car
         car_pos = self.car.pos
         min_dist = float('inf')
         nearest = None
@@ -148,6 +153,7 @@ class Game:
 
         screen = self.main.screen
 
+        # Handle events (quit, handbrake, menu, FPS toggle, job accept)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.main.quit()
@@ -165,7 +171,7 @@ class Game:
                 self.pending_job = None
                 print("[JOB] Accepted new job.")
 
-
+        # Calculate camera position to center the car
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
 
@@ -176,11 +182,13 @@ class Game:
         # === Job Progress Logic ===
         if self.current_job and self.job_state:
             if self.job_state == "pickup":
+                # If at pickup location, handbrake is engaged, and car is stopped, switch to dropoff
                 if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger picked up.")
                     self.job_state = "dropoff"
 
             elif self.job_state == "dropoff":
+                # If at delivery location, handbrake is engaged, and car is stopped, complete job and start new one
                 if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
                     base_rate = 0.5  
@@ -198,7 +206,7 @@ class Game:
                         self.cash_animations.pop(0)
 
                     self.new_job()
-                    self.job_state = None
+                    self.job_state = "pickup"  # Immediately set to pickup for the new job
 
         if self.pending_job and event.key == pygame.K_RETURN:
             self.current_job = self.pending_job
@@ -215,8 +223,8 @@ class Game:
                 if self.car.fuel < self.car.max_fuel:
                     self.car.fuel = min(self.car.fuel + 0.5, self.car.max_fuel)
 
+        # Draw game map
         screen.fill((50, 50, 50))
-
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
                 pos = (x * self.tile_size - camera_x, y * self.tile_size - camera_y)
@@ -249,8 +257,42 @@ class Game:
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
 
+        # === ARROW TO CURRENT JOB TARGET ===
+        if self.current_job and self.job_state:
+            # Set arrow color to match minimap dot color
+            if self.job_state == "pickup":
+                target_tile = self.current_job.pickup_tile_loc
+                arrow_color = (0, 120, 255)  # Blue for pickup
+            else:
+                target_tile = self.current_job.delivery_tile_loc
+                arrow_color = (0, 200, 0)    # Green for dropoff
+
+            target_pos = self.tile_to_world(target_tile)
+            car_screen_x = self.car.pos.x - camera_x
+            car_screen_y = self.car.pos.y - camera_y
+            target_screen_x = target_pos.x - camera_x
+            target_screen_y = target_pos.y - camera_y
+            dir_vec = pygame.Vector2(target_screen_x - car_screen_x, target_screen_y - car_screen_y)
+            if dir_vec.length() > 1:
+                dir_vec = dir_vec.normalize()
+                arrow_center = pygame.Vector2(car_screen_x, car_screen_y) + dir_vec * 120
+                angle = math.degrees(math.atan2(-dir_vec.y, dir_vec.x))
+                arrow_size = 36
+                points = [
+                    (arrow_center.x + math.cos(math.radians(angle)) * arrow_size,
+                     arrow_center.y - math.sin(math.radians(angle)) * arrow_size),
+                    (arrow_center.x + math.cos(math.radians(angle + 140)) * (arrow_size // 2),
+                     arrow_center.y - math.sin(math.radians(angle + 140)) * (arrow_size // 2)),
+                    (arrow_center.x + math.cos(math.radians(angle - 140)) * (arrow_size // 2),
+                     arrow_center.y - math.sin(math.radians(angle - 140)) * (arrow_size // 2)),
+                ]
+                shadow_points = [(x+3, y+3) for x, y in points]
+                pygame.draw.polygon(screen, (40, 40, 40), shadow_points)
+                pygame.draw.polygon(screen, arrow_color, points)
+
         # OUT OF FUEL MESSAGE
         if self.car.fuel <= 0:
+            # Show "OUT OF FUEL" message in the center of the screen
             message = "OUT OF FUEL"
             font = pygame.font.Font(self.font_path, 64)
             text_color = (255, 255, 255)
@@ -274,6 +316,7 @@ class Game:
 
         # REFUEL MESSAGE
         if self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
+            # Show "Hold F to refuel" message above the dashboard
             message = "Hold F to refuel"
             font = pygame.font.Font(self.font_path, 40)
             text_color = (255, 255, 255)
@@ -300,9 +343,9 @@ class Game:
 
         # FUEL ARROW TO PUMP
         if 0 < self.car.fuel < 30 and self.pump_tile_locations:
+            # Show arrow to nearest pump if fuel is low
             nearest_pump = self.get_nearest_pump_tile()
             if nearest_pump:
-                # Car position on screen
                 car_screen_x = self.car.pos.x - camera_x
                 car_screen_y = self.car.pos.y - camera_y
                 # Pump position on screen
@@ -332,6 +375,7 @@ class Game:
                     pygame.draw.polygon(screen, (220, 40, 40), points)
 
         if self.pending_job:
+            # Show notification for new job
             self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
 
 
@@ -339,7 +383,7 @@ class Game:
         pygame.display.flip()
 
     def draw_dashboard(self):
-
+        # Draws the dashboard with speed, fuel, cash, and indicators
         dash_rect = pygame.Rect(20, self.main.screen.get_height() - 140, 240, 120)
         dash_bg_rect = dash_rect.inflate(24, 32)
 
@@ -403,6 +447,7 @@ class Game:
         pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
 
         if self.brake_pressed:
+            # Show brake indicator if brake is pressed
             pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
             self._draw_text("BRAKE", dash_rect.x + 15, dash_rect.bottom - 24, (0, 0, 0), size=20)
 
@@ -450,36 +495,31 @@ class Game:
             if anim["lifetime"] <= 0 or anim["alpha"] <= 0:
                 self.cash_animations.remove(anim)
 
-
-
     def draw_minimap(self):
-        """Displays the minimap in the bottom right corner and highlights the car position, pickup and delivery locations."""
+        """Displays the minimap in the bottom right corner and highlights the car position and current target only."""
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
         car_y = int(self.car.pos.y / self.tile_size * scale)
         pygame.draw.circle(minimap, (255, 0, 0), (car_x, car_y), max(3, int(3 * scale)))
 
-        # Draw pickup and delivery locations if job exists
-        if self.current_job is not None:
+        # Show only the current target (pickup or dropoff)
+        if self.current_job is not None and self.job_state:
             if self.job_state == "pickup":
-                # Show pickup location (blue dot) only if still in pickup phase
-                px, py = self.current_job.pickup_tile_loc
-                pickup_x = int(px * scale)
-                pickup_y = int(py * scale)
-                pygame.draw.circle(minimap, (0, 120, 255), (pickup_x, pickup_y), max(3, int(3 * scale)))
-
-            # Always show delivery location (green dot) while job exists
-            dx, dy = self.current_job.delivery_tile_loc
-            delivery_x = int(dx * scale)
-            delivery_y = int(dy * scale)
-            pygame.draw.circle(minimap, (0, 200, 0), (delivery_x, delivery_y), max(3, int(3 * scale)))
+                tx, ty = self.current_job.pickup_tile_loc
+                color = (0, 120, 255)  # Blue for pickup
+            else:
+                tx, ty = self.current_job.delivery_tile_loc
+                color = (0, 200, 0)    # Green for dropoff
+            target_x = int(tx * scale)
+            target_y = int(ty * scale)
+            pygame.draw.circle(minimap, color, (target_x, target_y), max(4, int(4 * scale)))
 
         minimap_rect = minimap.get_rect()
         minimap_rect.x = self.main.screen.get_width() - minimap_rect.width - 40
         minimap_rect.y = self.main.screen.get_height() - minimap_rect.height - 40
 
-        # Draw a colored filled rectangle with border (same color as text PLAY in menu)
+        # Draw a colored filled rectangle with border (same color as PLAY in menu)
         border_color = (252, 186, 3)
         border_rect = minimap_rect.inflate(16, 16)
         pygame.draw.rect(self.main.screen, border_color, border_rect, border_radius=12)
@@ -491,16 +531,17 @@ class Game:
         self.main.screen.blit(minimap, (minimap_center_x, minimap_center_y))
 
     def tile_to_world(self, tile_pos):
+        # Converts tile coordinates to world (pixel) coordinates (center of tile)
         x, y = tile_pos
         return pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
 
     def is_at_tile(self, tile_pos, radius=50):
+        # Returns True if the car is within a certain radius of the given tile
         world_pos = self.tile_to_world(tile_pos)
         return self.car.pos.distance_to(world_pos) <= radius
 
-
     def _draw_text(self, text, x, y, color=(255, 255, 255), size=36):
-        # Use Kenney_Future font for all text
+        # Draws text using Kenney_Future font at the given position
         font = pygame.font.Font(self.font_path, size)
         surface = font.render(text, True, color)
         self.main.screen.blit(surface, (x, y))
