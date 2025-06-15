@@ -5,6 +5,9 @@ import random
 from car_sprite import CarSprite
 from tiles import tile_dict
 from job import Job
+from entities.passenger import Passenger
+from entities.passenger_manager import PassengerManager
+
 
 class Game:
     def __init__(self, main):
@@ -17,6 +20,9 @@ class Game:
         self.is_refueling = False
         self.cash_animations = []
         self.pending_job = None
+        self.passenger_group = pygame.sprite.Group()
+        self.passenger_sprite = None
+        self.passenger_visible = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -88,6 +94,13 @@ class Game:
 
         self.show_fps = False  # FPS display toggle
 
+        self.passenger_group = pygame.sprite.Group()
+        self.passenger_sprite_sheet = pygame.image.load("src/entities/RPG_assets.png").convert_alpha()
+        self.passenger_sprite = None
+        self.passenger_visible = False
+
+        self.passenger_manager = PassengerManager(self.passenger_sprite_sheet)
+
     def new_job(self):
         if len(self.pickup_tile_locations) < 2:
             self.current_job = None
@@ -139,6 +152,7 @@ class Game:
 
     def loop(self, dt):
         screen = self.main.screen
+        self.passenger_manager.update(dt)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -164,26 +178,43 @@ class Game:
         keys = pygame.key.get_pressed()
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
+        self.passenger_group.update(dt)
+
 
         # === Job Progress Logic ===
         if self.current_job and self.job_state:
             if self.job_state == "pickup":
-                if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
+                if (
+                    self.is_at_tile(self.current_job.pickup_tile_loc)
+                    and self.car.is_handbraking()
+                    and abs(self.car.speed) < 0.2
+                ):
                     print("[JOB] Passenger picked up.")
+                    self.passenger_manager.start_entry_animation()
                     self.job_state = "dropoff"
 
+                    if self.passenger_sprite:
+                        self.passenger_sprite.kill()
+                        self.passenger_sprite = None
+                        self.passenger_visible = False
+
             elif self.job_state == "dropoff":
-                if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
+                if (
+                    self.is_at_tile(self.current_job.delivery_tile_loc)
+                    and self.car.is_handbraking()
+                    and abs(self.car.speed) < 0.2
+                ):
                     print("[JOB] Passenger dropped off. Job complete.")
-                    base_rate = 0.5  
+                    base_rate = 0.5
                     distance = self.current_job.distance(self.tile_size)
                     earned = int(base_rate * distance)
                     self.money += earned
+
                     self.cash_animations.append({
-                        "text":f"+${earned}",
+                        "text": f"+${earned}",
                         "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 50),
                         "alpha": 255,
-                        "lifetime": 1.0 
+                        "lifetime": 1.0
                     })
 
                     if len(self.cash_animations) > 5:
@@ -192,12 +223,20 @@ class Game:
                     self.new_job()
                     self.job_state = None
 
+        # === Passenger Spawning via PassengerManager ===
+        if self.job_state == "pickup" and not self.passenger_visible:
+            tile_x, tile_y = self.current_job.pickup_tile_loc
+            pixel_x = tile_x * self.tile_size
+            pixel_y = tile_y * self.tile_size
+            self.passenger_manager.start_entry_animation(pixel_x, pixel_y)
+            self.passenger_visible = True
+
+        # === Accepting a New Job ===
         if self.pending_job and event.key == pygame.K_RETURN:
             self.current_job = self.pending_job
             self.job_state = "pickup"
             self.pending_job = None
             print("[JOB] Accepted new job.")
-
 
         # Refueling logic
         self.is_refueling = False
@@ -326,7 +365,12 @@ class Game:
         if self.pending_job:
             self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
 
+        self.passenger_manager.update(dt)
+        self.passenger_manager.draw(screen, camera_x, camera_y)
 
+        # Draw the game objects
+        self.sprites.draw(screen)
+        self.passenger_group.draw(screen)  # Draw the passenger
 
         pygame.display.flip()
 
