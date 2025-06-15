@@ -190,7 +190,7 @@ class Game:
                     and abs(self.car.speed) < 0.2
                 ):
                     print("[JOB] Passenger picked up.")
-                    self.passenger_manager.start_entry_animation()
+                    # self.passenger_manager.start_entry_animation()
                     self.job_state = "dropoff"
 
                     if self.passenger_sprite:
