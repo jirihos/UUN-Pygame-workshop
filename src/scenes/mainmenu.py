@@ -17,8 +17,9 @@ class MainMenu():
         # Definujte base_path zde:
         base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
 
-        # Load background image or fill color
-        self.background = pygame.image.load(os.path.join(base_path, "tiles/menu/background.png")).convert()
+        # Load background image and scale to fit the screen
+        bg_image = pygame.image.load(os.path.join(base_path, "tiles/menu/background.png")).convert()
+        self.background = pygame.transform.scale(bg_image, (self.main.screen.get_width(), self.main.screen.get_height()))
 
         # Buttons
         self.buttons = pygame.sprite.Group()
@@ -41,7 +42,8 @@ class MainMenu():
             play_color=(220, 40, 40),
             icon_idle=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
             icon_hover=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
-            icon_click=os.path.join(base_path, "tiles/menu/icon_cross_grey.png")
+            icon_click=os.path.join(base_path, "tiles/menu/icon_cross_grey.png"),
+            font_size=38
         ))
 
     def loop(self, dt):

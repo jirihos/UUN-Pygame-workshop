@@ -4,7 +4,7 @@ import os
 class MenuButton(pygame.sprite.Sprite):
     def __init__(
         self, x, y, callback, text="Play", play_color=(252, 186, 3),
-        icon_idle=None, icon_hover=None, icon_click=None
+        icon_idle=None, icon_hover=None, icon_click=None, font_size=48
     ):
         super().__init__()
         base_path = os.path.dirname(__file__)  # path to src
@@ -28,8 +28,8 @@ class MenuButton(pygame.sprite.Sprite):
         self.clicked = False
         self.hovered = False  # Track hover state
 
-        # Font for "Play" text
-        self.font = pygame.font.Font(font_path, 48)
+        # Font for button text
+        self.font = pygame.font.Font(font_path, font_size)
         self.text = text
         self.text_color = play_color
         self.text_surface = self.font.render(self.text, True, self.text_color)
@@ -54,7 +54,7 @@ class MenuButton(pygame.sprite.Sprite):
             self.hovered = False
 
     def draw(self, surface):
-        offset = 160 if self.hovered else 0
+        offset = 120 if self.hovered else 0
         arrow_pos = (self.rect.x + offset, self.rect.y)
         if self.hovered:
             # Draw text with shadow to the left of the arrow
