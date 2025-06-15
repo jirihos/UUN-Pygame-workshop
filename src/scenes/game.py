@@ -57,6 +57,7 @@ class Game:
         self.font_path = os.path.join(base_path, "fonts/Kenney_Future.ttf")
         self.font = pygame.font.Font(self.font_path, 36)
         self.font_small = pygame.font.Font(self.font_path, 24)
+        self.small_font = pygame.font.Font(self.font_path, 32)
 
         self.SPRITE_TILE_SIZE = 16
         self.TILE_SPACING = 1
@@ -472,18 +473,16 @@ class Game:
             for x, tile_id in enumerate(row):
                 pos = (x * self.tile_size - camera_x, y * self.tile_size - camera_y)
                 tile_img = self.tile_images.get(tile_id)
-                if tile_img:
+                if tile_img and pos[0] > -self.tile_size and pos[0] < self.main.WIDTH and pos[1] > -self.tile_size and pos[1] < self.main.HEIGHT:
                     screen.blit(tile_img, pos)
 
         self.sprites.draw(screen)
 
-        small_font = pygame.font.Font(self.font_path, 32)
-
         # Draw FPS only if toggled on
         if self.show_fps:
             fps_text = f"FPS: {self.main.clock.get_fps():.0f}"
-            fps_shadow = small_font.render(fps_text, True, (40, 40, 40))
-            fps_surface = small_font.render(fps_text, True, (0, 255, 0))
+            fps_shadow = self.small_font.render(fps_text, True, (40, 40, 40))
+            fps_surface = self.small_font.render(fps_text, True, (0, 255, 0))
             screen.blit(fps_shadow, (2, 2))
             screen.blit(fps_surface, (0, 0))
 
