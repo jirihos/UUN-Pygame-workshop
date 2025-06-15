@@ -1,19 +1,20 @@
 """
-Editor 
+Editor
 
 l - load
-s- save
+q - save
 
-arrows movement
-y, x select 
-mouse l -> choose, r -> default
+šipky = pohyb kamery
+y, x nebo [ a ] = výběr dlaždice
+a, d, w, s = posun výběru mezi sloupci a řádky (v tilesetu)
+levé tlačítko = kreslení
+pravé tlačítko = mazání (tile 0)
 """
 
 import pygame
-import sys
 import os
-from tiles import tile_dict
-
+import sys
+from tiles import tile_dict  # použit tiles.py se 35×26 dlaždicemi
 
 # === Inicializace Pygame ===
 pygame.init()
@@ -46,17 +47,35 @@ def get_tile(x, y):
     rect = pygame.Rect(px, py, SPRITE_TILE_SIZE, SPRITE_TILE_SIZE)
     return sprite_sheet.subsurface(rect)
 
-# === Definice dlaždic ===
-tile_images = {i: get_tile(*coords) for i, (coords, _) in tile_dict.items()}
-tile_descriptions = {i: desc for i, (_, desc) in tile_dict.items()}
+# === Bezpečné načtení dlaždic ===
+tile_images = {}
+tile_descriptions = {}
+coords_to_id = {}
+id_to_coords = {}
 
-tile_images = {i: get_tile(*coords[0]) for i, coords in tile_dict.items()}
-tile_descriptions = {i: desc for i, (_, desc) in tile_dict.items()}
-TILE_TYPES = len(tile_images)
+max_x_tiles = sprite_sheet.get_width() // (SPRITE_TILE_SIZE + TILE_SPACING)
+max_y_tiles = sprite_sheet.get_height() // (SPRITE_TILE_SIZE + TILE_SPACING)
+
+for i, (coords, desc) in tile_dict.items():
+    x, y = coords
+    if 0 <= x < max_x_tiles and 0 <= y < max_y_tiles:
+        try:
+            tile_images[i] = get_tile(x, y)
+            tile_descriptions[i] = desc
+            coords_to_id[(x, y)] = i
+            id_to_coords[i] = (x, y)
+        except ValueError:
+            print(f"Výřez mimo rozsah: {i} → ({x}, {y})")
+    else:
+        print(f"Souřadnice mimo rozsah: {i} → ({x}, {y})")
+
+# === Výběr dlaždice ===
+valid_tile_ids = sorted(tile_images.keys())
+selected_index = 0
+selected_tile = valid_tile_ids[selected_index]
 
 # === Mapa ===
 tile_map = [[0 for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]
-selected_tile = 0
 
 # === Kamera ===
 camera_x = 0
@@ -68,6 +87,7 @@ running = True
 while running:
     screen.fill((50, 50, 50))
 
+    # === Pohyb kamery ===
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT]:
         camera_x = max(0, camera_x - camera_speed)
@@ -94,10 +114,12 @@ while running:
     # === GUI panel ===
     pygame.draw.rect(screen, (30, 30, 30), (0, VISIBLE_HEIGHT - 40, VISIBLE_WIDTH, 40))
     desc = tile_descriptions.get(selected_tile, "?")
-    label = font.render(f"Vybraná dlaždice: {selected_tile} ({desc})  ←/→, S: uložit, L: načíst", True, (255, 255, 255))
+    label = font.render(f"Vybraná dlaždice: {selected_tile} ({desc}) ←/→, WASD, Q: uložit, L: načíst", True, (255, 255, 255))
     screen.blit(label, (10, VISIBLE_HEIGHT - 30))
-    preview = pygame.transform.scale(tile_images[selected_tile], (TILE_SIZE, TILE_SIZE))
-    screen.blit(preview, (VISIBLE_WIDTH - TILE_SIZE - 10, VISIBLE_HEIGHT - TILE_SIZE - 5))
+    preview_tile = tile_images.get(selected_tile)
+    if preview_tile:
+        preview = pygame.transform.scale(preview_tile, (TILE_SIZE, TILE_SIZE))
+        screen.blit(preview, (VISIBLE_WIDTH - TILE_SIZE - 10, VISIBLE_HEIGHT - TILE_SIZE - 5))
 
     # === Události ===
     for event in pygame.event.get():
@@ -113,29 +135,66 @@ while running:
                     tile_map[ty][tx] = selected_tile
                 elif event.button == 3:
                     tile_map[ty][tx] = 0
-        
+
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_y:
-                selected_tile = (selected_tile - 1) % TILE_TYPES
-            elif event.key == pygame.K_x:
-                selected_tile = (selected_tile + 1) % TILE_TYPES
-            elif event.key == pygame.K_s:
+            # Posun indexu v platných tile ID
+            if event.key == pygame.K_y or event.key == pygame.K_LEFTBRACKET:
+                selected_index = (selected_index - 1) % len(valid_tile_ids)
+                selected_tile = valid_tile_ids[selected_index]
+            elif event.key == pygame.K_x or event.key == pygame.K_RIGHTBRACKET:
+                selected_index = (selected_index + 1) % len(valid_tile_ids)
+                selected_tile = valid_tile_ids[selected_index]
+
+            # Posun po souřadnicích dlaždic
+            elif event.key in (pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s):
+                if selected_tile in id_to_coords:
+                    x, y = id_to_coords[selected_tile]
+                    if event.key == pygame.K_a:
+                        x -= 1
+                    elif event.key == pygame.K_d:
+                        x += 1
+                    elif event.key == pygame.K_w:
+                        y -= 1
+                    elif event.key == pygame.K_s:
+                        y += 1
+                    if (x, y) in coords_to_id:
+                        selected_tile = coords_to_id[(x, y)]
+                        selected_index = valid_tile_ids.index(selected_tile)
+
+            elif event.key == pygame.K_SPACE:
+                selected_tile = 0
+                selected_index = valid_tile_ids.index(0)
+
+            elif event.key == pygame.K_q:
                 with open(map_filepath, "w") as f:
                     for row in tile_map:
                         f.write(",".join(map(str, row)) + "\n")
-                print("Mapa uložena.")
+                print("Mapa uložena jako tile_map.txt")
+
             elif event.key == pygame.K_l:
                 try:
                     with open(map_filepath, "r") as f:
                         tile_map = [list(map(int, line.strip().split(","))) for line in f]
                     MAP_HEIGHT = len(tile_map)
                     MAP_WIDTH = len(tile_map[0]) if MAP_HEIGHT > 0 else 0
-                    print("Mapa načtena.")
+                    print("Mapa načtena ze souboru.")
                 except Exception as e:
                     print("Chyba při načítání:", e)
+
+    # === Malování při držení tlačítek ===
+    mouse_buttons = pygame.mouse.get_pressed()
+    if mouse_buttons[0] or mouse_buttons[2]:
+        mx, my = pygame.mouse.get_pos()
+        if my < VISIBLE_HEIGHT - 40:
+            tx = (mx + camera_x) // TILE_SIZE
+            ty = (my + camera_y) // TILE_SIZE
+            if 0 <= tx < MAP_WIDTH and 0 <= ty < MAP_HEIGHT:
+                if mouse_buttons[0]:
+                    tile_map[ty][tx] = selected_tile
+                elif mouse_buttons[2]:
+                    tile_map[ty][tx] = 0
 
     pygame.display.flip()
 
 pygame.quit()
 sys.exit()
-
