@@ -70,10 +70,12 @@ class Game:
     def new_job(self):
         if len(self.pickup_tile_locations) < 2:
             self.current_job = None
+            self.job_state = None
             return
         
         locs = random.sample(self.pickup_tile_locations, 2)
         self.current_job = Job(locs[0], locs[1])
+        self.job_state = "pickup"
 
     def is_walkable(self, x, y): 
         tile_x = int(x) // self.tile_size
@@ -121,7 +123,8 @@ class Game:
         screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
         if self.current_job is not None:
             screen.blit(self.font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-            screen.blit(self.font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (700, 0))
+            screen.blit(self.font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
+            screen.blit(self.font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
 
         pygame.display.flip()
 
