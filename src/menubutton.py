@@ -37,6 +37,11 @@ class MenuButton(pygame.sprite.Sprite):
         self.text_surface = self.font.render(self.text, True, self.text_color)
 
     def update(self):
+        """Update the button state based on mouse position and clicks.
+        
+        Checks if the button is hovered or clicked, and updates the image accordingly.
+        """
+        
         mouse_pos = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()[0]
 
@@ -56,6 +61,13 @@ class MenuButton(pygame.sprite.Sprite):
             self.hovered = False
 
     def draw(self, surface):
+        """Draw the button and its text on the given surface.
+        
+        Args:
+            surface (pygame.Surface): The surface to draw the button on.
+
+        """
+
         offset = 120 if self.hovered else 0
         arrow_pos = (self.rect.x + offset, self.rect.y)
         if self.hovered:

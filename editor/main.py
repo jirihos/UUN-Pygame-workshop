@@ -1,14 +1,16 @@
 """
-Editor
+Tilemap editor
 
 l - load
 q - save
 
 šipky = pohyb kamery
-y, x nebo [ a ] = výběr dlaždice
+
 a, d, w, s = posun výběru mezi sloupci a řádky (v tilesetu)
+
 levé tlačítko = kreslení
 pravé tlačítko = mazání (tile 0)
+
 """
 
 import pygame

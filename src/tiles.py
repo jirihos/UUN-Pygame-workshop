@@ -1,6 +1,7 @@
-# tiles.py
-# Automaticky vygenerovaný tile_dict pro 35 sloupců × 26 řádků (platné souřadnice)
-# Každá položka odpovídá souřadnici v tilesetu (16×16 px + 1 px mezera)
+"""
+tile_dict for 35 columns × 26 rows
+# Each ID is tile (16×16 px + 1 px spacing)
+"""
 
 tile_dict = {
     0: ((0, 25), "dlaždice (0, 25)"),
