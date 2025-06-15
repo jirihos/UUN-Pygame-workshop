@@ -49,6 +49,7 @@ class Game:
         self.passenger_group = pygame.sprite.Group()
         self.passenger_sprite = None
         self.passenger_visible = False
+        self.accepting_jobs = True  # Whether new jobs are generated automatically
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -166,7 +167,9 @@ class Game:
         
         # Randomly select two different pickup locations for pickup and delivery
         locs = random.sample(self.pickup_tile_locations, 2)
-        self.pending_job = Job(locs[0], locs[1])
+        self.current_job = Job(locs[0], locs[1])
+        self.job_state = "pickup"
+        self.pending_job = None
         print(f"[JOB] New job created: {locs}")
 
         """print("Job State:", self.job_state)
@@ -265,11 +268,13 @@ class Game:
                     self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps
-                elif event.key == pygame.K_RETURN and self.pending_job:
-                    self.current_job = self.pending_job
-                    self.job_state = "pickup"
-                    self.pending_job = None
-                    print("[JOB] Accepted new job.")
+                elif event.key == pygame.K_RETURN:
+                    # Only toggle accepting_jobs on ENTER
+                    self.accepting_jobs = not self.accepting_jobs
+                    print(f"[JOB] Accepting jobs: {self.accepting_jobs}")
+                    # If switched ON and no job, generate new job
+                    if self.accepting_jobs and not self.current_job and not self.pending_job:
+                        self.new_job()
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -313,7 +318,9 @@ class Game:
                     # Clean up job
                     self.passenger_manager.remove_passenger()
                     self.job_state = None
-                    self.new_job()
+                    self.current_job = None
+                    if self.accepting_jobs:
+                        self.new_job()
 
 
         # === Passenger Spawning via PassengerManager ===
@@ -642,9 +649,9 @@ class Game:
                     # Then draw the red arrow
                     pygame.draw.polygon(screen, (220, 40, 40), points)
 
-        if self.pending_job:
+        # if self.pending_job:
             # Show notification for new job
-            self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
+            # self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
 
         self.passenger_manager.update(dt)
         self.passenger_manager.draw(screen, camera_x, camera_y)
@@ -807,6 +814,17 @@ class Game:
         cust_y = score_y + score_surface.get_height() + 4
         self.main.screen.blit(cust_shadow, (cust_x + 2, cust_y + 2))
         self.main.screen.blit(cust_surface, (cust_x, cust_y))
+
+        # === Display Accepting Jobs Status ===
+        jobs_status = "Accepting jobs: ON" if self.accepting_jobs else "Accepting jobs: OFF"
+        jobs_color = (252, 186, 3) if self.accepting_jobs else (180, 60, 60)
+        font_jobs = pygame.font.Font(self.font_path, 22)
+        jobs_surface = font_jobs.render(jobs_status, True, jobs_color)
+        jobs_shadow = font_jobs.render(jobs_status, True, (40, 40, 40))
+        jobs_x = 20
+        jobs_y = cust_y + cust_surface.get_height() + 4
+        self.main.screen.blit(jobs_shadow, (jobs_x + 2, jobs_y + 2))
+        self.main.screen.blit(jobs_surface, (jobs_x, jobs_y))
 
         # === Floating Money Animation ===
         for anim in self.cash_animations[:]:
