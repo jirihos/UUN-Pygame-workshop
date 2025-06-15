@@ -13,6 +13,7 @@ class Game:
         self.car = CarSprite(400,500)
         self.sprites.add(self.car)
         self.brake_pressed = False
+        self.is_refueling = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -116,6 +117,11 @@ class Game:
             return tile in self.WALKABLE_TILES
         return False
 
+    def is_on_pump_tile(self):
+        car_tile_x = int(self.car.pos.x) // self.tile_size
+        car_tile_y = int(self.car.pos.y) // self.tile_size
+        return (car_tile_x, car_tile_y) in self.pump_tile_locations
+
     def loop(self, dt):
         screen = self.main.screen
 
@@ -136,6 +142,14 @@ class Game:
         keys = pygame.key.get_pressed()
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
+
+        # === Refueling logic ===
+        self.is_refueling = False
+        if self.is_on_pump_tile() and self.car.is_handbraking():
+            if keys[pygame.K_f]:
+                self.is_refueling = True
+                if self.car.fuel < self.car.max_fuel:
+                    self.car.fuel = min(self.car.fuel + 0.5, self.car.max_fuel)
 
         screen.fill((50, 50, 50))
 
@@ -168,6 +182,55 @@ class Game:
 
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
+
+        # === OUT OF FUEL MESSAGE ===
+        if self.car.fuel <= 0:
+            message = "OUT OF FUEL"
+            font = pygame.font.Font(self.font_path, 64)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect(center=screen_rect.center)
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 80
+            bg_height = text_rect.height + 60
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect(center=screen_rect.center)
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+        # === REFUEL MESSAGE ===
+        if self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
+            message = "Hold F to refuel"
+            font = pygame.font.Font(self.font_path, 40)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect()
+            group_center = (screen_rect.centerx, screen_rect.height - 60)
+            text_rect.center = group_center
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 60
+            bg_height = text_rect.height + 30
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect()
+            bg_rect.center = group_center
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
 
         pygame.display.flip()
 
