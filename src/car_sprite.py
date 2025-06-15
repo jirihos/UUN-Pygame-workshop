@@ -11,24 +11,24 @@ class CarSprite(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(x, y))
         
-        self.collision_width = size[0] * 0.0
-        self.collision_height = size[1] * 0.0
+        self.collision_width = size[0] * 0.5
+        self.collision_height = size[1] * 0.85
 
 
         self.pos = pygame.Vector2(x, y)
         self.angle = 0
         self.speed = 0
 
-        self.max_speed = 10
+        self.max_speed = 5
         self.max_reverse_speed = -2
-        self.acceleration = 0.2
+        self.acceleration = 0.1
         self.brake_strength = 0.3
-        self.friction = 0.05
+        self.friction = 0.5
 
         self.steering_angle = 0
-        self.steering_speed = 0.3
-        self.max_steering = 3
-        self.steering_return = 0.1
+        self.steering_speed = 0.8
+        self.max_steering = 5.0
+        self.steering_return = 0.5
 
         self.handbrake_engaged = False
         self.stored_momentum = 0

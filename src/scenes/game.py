@@ -8,7 +8,7 @@ class Game:
     def __init__(self, main):
         self.main = main
         self.sprites = pygame.sprite.Group()
-        self.car = CarSprite(400,500)     #(self.main.screen.get_width() // 2, self.main.screen.get_height() // 2)
+        self.car = CarSprite(400, 500)  # Manual spawn position
         self.sprites.add(self.car)
         self.font = pygame.font.SysFont(None, 36)
         self.brake_pressed = False
