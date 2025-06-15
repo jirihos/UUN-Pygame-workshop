@@ -4,6 +4,8 @@ import math
 from menubutton import MenuButton
 
 class MainMenu():
+    """Into and main menu screen."""
+
     def __init__(self, main, skip_intro=False):
         self.intro_duration = 6000
         self.intro_timer = 0 if skip_intro else self.intro_duration  # Přeskoč intro pokud skip_intro=True
@@ -47,6 +49,8 @@ class MainMenu():
         ))
 
     def loop(self, dt):
+        """Performs the Event, Update, Render cycle."""
+
         screen = self.main.screen
 
         # Event

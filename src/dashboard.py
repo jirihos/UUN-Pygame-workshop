@@ -2,6 +2,8 @@ import math
 import pygame
 
 def draw_dashboard(self):
+    """Renders the car's dashboard."""
+
     screen = self.main.screen
 
     # Base panel

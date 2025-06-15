@@ -2,6 +2,8 @@ import pygame
 import math
 
 class CarSprite(pygame.sprite.Sprite):
+    """The car object."""
+
     def __init__(self, x, y, size=(85, 100)):
         super().__init__()
 

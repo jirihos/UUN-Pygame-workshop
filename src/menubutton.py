@@ -2,6 +2,8 @@ import pygame
 import os
 
 class MenuButton(pygame.sprite.Sprite):
+    """A clickable button in the main menu."""
+
     def __init__(
         self, x, y, callback, text="Play", play_color=(252, 186, 3),
         icon_idle=None, icon_hover=None, icon_click=None, font_size=48
