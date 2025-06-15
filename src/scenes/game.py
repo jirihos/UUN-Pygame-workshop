@@ -1,5 +1,6 @@
 import pygame
 import os
+import math
 from car_sprite import CarSprite
 from tiles import tile_dict
 
@@ -12,33 +13,27 @@ class Game:
         self.font = pygame.font.SysFont(None, 36)
         self.brake_pressed = False
 
-        base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
+        base_path = os.path.dirname(os.path.dirname(__file__))
 
-        # === Konfigurace sprite sheetu ===
-        self.SPRITE_TILE_SIZE = 16     # velikost jedné dlaždice v obrázku
-        self.TILE_SPACING = 1          # mezera mezi dlaždicemi
-        self.TILE_MARGIN = 0           # okraje kolem sprite sheetu
+        self.SPRITE_TILE_SIZE = 16
+        self.TILE_SPACING = 1
+        self.TILE_MARGIN = 0
 
-        # === Konstanty ===
-        self.tile_size = 64            # velikost dlaždice na obrazovce
+        self.tile_size = 64
 
-        # === Načtení sprite sheetu ===
         self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap_packed.png")).convert_alpha()
 
-        # === Funkce pro vystřižení dlaždice ===
         def get_tile(x, y):
             px = self.TILE_MARGIN + x * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             py = self.TILE_MARGIN + y * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             rect = pygame.Rect(px, py, self.SPRITE_TILE_SIZE, self.SPRITE_TILE_SIZE)
             return self.sprite_sheet.subsurface(rect)
 
-        # === Načtení obrázků dlaždic podle ID ===
         self.tile_images = {
             i: pygame.transform.scale(get_tile(*coords), (self.tile_size, self.tile_size))
             for i, (coords, _) in tile_dict.items()
         }
 
-        # === Barvy pro minimapu===
         self.tile_colors = {
             i: (100 + i * 10 % 155, 100 + i * 20 % 155, 100 + i * 30 % 155)
             for i in tile_dict.keys()
@@ -52,12 +47,10 @@ class Game:
                     tile_map.append(row)
             return tile_map
 
-        # === Načtení mapy ===
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
-        self.tile_map = load_tile_map(map_filepath)  # mapa vygenerovaná editorem
+        self.tile_map = load_tile_map(map_filepath)
 
-        # === Průchodnost ===
-        self.WALKABLE_TILES = [ 1, 2, 3, 4, 5, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+        self.WALKABLE_TILES = [1, 2, 3, 4, 5, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -73,7 +66,6 @@ class Game:
     def loop(self, dt):
         screen = self.main.screen
 
-        # Event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.main.quit()
@@ -81,9 +73,6 @@ class Game:
                 if event.key == pygame.K_SPACE:
                     self.car.toggle_handbrake()
 
-        # Update
-
-        # Kamera sleduje hráče
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
 
@@ -91,12 +80,7 @@ class Game:
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
 
-        font = pygame.font.SysFont("None", 50)
-        fps_text = font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100))
-
-        # Render
         screen.fill((255, 255, 255))
-        # === Vykreslení mapy ===
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
                 pos = (x * self.tile_size - camera_x, y * self.tile_size - camera_y)
@@ -105,48 +89,56 @@ class Game:
                     screen.blit(tile_img, pos)
         self.sprites.draw(screen)
 
-        # === Minimapka ===
-        def draw_minimap():
-            map_w = len(self.tile_map[0])
-            map_h = len(self.tile_map)
-        
-            max_size = 200  # maximální šířka/výška minimapy v pixelech
-            mini_tile = max(1, min(max_size // map_w, max_size // map_h))
-        
-            offset_x = self.main.WIDTH - map_w * mini_tile - 5
-            offset_y = self.main.HEIGHT - map_h * mini_tile - 5
-        
-            # pozadí minimapy (volitelné)
-            pygame.draw.rect(screen, (40, 40, 40), (offset_x - 2, offset_y - 2, map_w * mini_tile + 4, map_h * mini_tile + 4))
-        
-            # vykreslení minimapy
-            for y, row in enumerate(self.tile_map):
-                for x, tile_id in enumerate(row):
-                    color = self.tile_colors.get(tile_id, (100, 100, 100))
-                    rect = pygame.Rect(offset_x + x * mini_tile, offset_y + y * mini_tile, mini_tile, mini_tile)
-                    pygame.draw.rect(screen, color, rect)
-        
-            # hráč na minimapě
-            px = int(self.car.pos.x // self.tile_size)
-            py = int(self.car.pos.y // self.tile_size)
-            pygame.draw.rect(
-                screen,
-                (255, 0, 0),
-                pygame.Rect(offset_x + px * mini_tile, offset_y + py * mini_tile, mini_tile, mini_tile)
-        )
+        screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
 
-        # draw_minimap()
-
-        screen.blit(fps_text, (0, 0))
-
-        # --- UI Indicators ---
-        if self.car.is_handbraking():
-            self._draw_text("Handbrake ON", 20, 20, (255, 100, 100))
-        if self.brake_pressed:
-            self._draw_text("Brake ON", 20, 60, (255, 255, 100))
+        self.draw_dashboard()
 
         pygame.display.flip()
 
-    def _draw_text(self, text, x, y, color=(255, 255, 255)):
-        surface = self.font.render(text, True, color)
+    def draw_dashboard(self):
+        dash_rect = pygame.Rect(20, self.main.HEIGHT - 100, 240, 80)
+        pygame.draw.rect(self.main.screen, (20, 20, 20), dash_rect, border_radius=10)
+        pygame.draw.rect(self.main.screen, (80, 80, 80), dash_rect, 3, border_radius=10)
+
+        # === Speed Display ===
+        speed_display = int(abs(self.car.speed * 5))  # scaled up display
+        self._draw_text(f"{speed_display} km/h", dash_rect.x + 20, dash_rect.y + 20, (255, 255, 255), size=36)
+
+        # === Fuel Gauge ===
+        fuel_level = max(0, min(self.car.fuel, 100))  # clamp to [0,100]
+        blocks = 5
+        block_width = 20
+        block_height = 30
+        spacing = 5
+        start_x = dash_rect.right - (blocks * (block_width + spacing)) - 10
+        y = dash_rect.y + 20
+
+        for i in range(blocks):
+            # Determine fill level
+            threshold = (i + 1) * (100 / blocks)
+            color = (100, 100, 100)  # default: empty
+            if fuel_level >= threshold:
+                if i >= 3:
+                    color = (0, 200, 0)  # green
+                elif i == 2:
+                    color = (255, 200, 0)  # yellow
+                else:
+                    color = (255, 0, 0)  # red
+
+            rect = pygame.Rect(start_x + i * (block_width + spacing), y, block_width, block_height)
+            pygame.draw.rect(self.main.screen, color, rect)
+            pygame.draw.rect(self.main.screen, (255, 255, 255), rect, 2)
+
+        # === Brake & Handbrake Indicators ===
+        if self.brake_pressed:
+            pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
+            self._draw_text("BRAKE", dash_rect.x + 15, dash_rect.bottom - 24, (0, 0, 0), size=20)
+
+        if self.car.is_handbraking():
+            pygame.draw.circle(self.main.screen, (200, 0, 0), (dash_rect.right - 20, dash_rect.bottom - 20), 10)
+            self._draw_text("P", dash_rect.right - 25, dash_rect.bottom - 28, (0, 0, 0), size=20)
+
+    def _draw_text(self, text, x, y, color=(255, 255, 255), size=36):
+        font = pygame.font.SysFont(None, size)
+        surface = font.render(text, True, color)
         self.main.screen.blit(surface, (x, y))
