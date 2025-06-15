@@ -52,7 +52,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [0, 22, 850, 779, 674, 709]
+        self.WALKABLE_TILES = [0, 22, 850, 851, 779, 674, 709]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -115,7 +115,7 @@ class Game:
         screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
         if self.current_job is not None:
             screen.blit(self.font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-            screen.blit(self.font.render(f"Delivery tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (400, 0))
+            screen.blit(self.font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (700, 0))
 
         pygame.display.flip()
 
