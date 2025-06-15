@@ -21,6 +21,9 @@ class Game:
         self.pending_job = None
         self.customers_served = 0  # Track number of delivered customers (score)
         self.tank_session = None  # Track refueling session
+        self.hunger = 100
+        self.max_hunger = 100
+        self.is_eating = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -98,6 +101,10 @@ class Game:
         self.pump_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/gas-pump-alt.png")).convert_alpha()
         self.pump_icon_img = pygame.transform.scale(self.pump_icon_img, (18, 18))  # Adjust size as needed
 
+        # Load PNG icon for food (for minimap)
+        self.food_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/apple-whole.png")).convert_alpha()
+        self.food_icon_img = pygame.transform.scale(self.food_icon_img, (18, 18))  # Adjust size as needed
+
         self.show_fps = False  # FPS display toggle
 
     def new_job(self):
@@ -140,6 +147,12 @@ class Game:
         car_tile_x = int(self.car.pos.x) // self.tile_size
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.pump_tile_locations
+
+    def is_on_food_tile(self):
+        # Returns True if the car is currently on a food tile
+        car_tile_x = int(self.car.pos.x) // self.tile_size
+        car_tile_y = int(self.car.pos.y) // self.tile_size
+        return (car_tile_x, car_tile_y) in self.food_tile_locations
 
     def get_nearest_pump_tile(self):
         # Finds the nearest pump tile to the car
@@ -290,6 +303,61 @@ class Game:
             })
             self.tank_session = None
 
+        # === Hunger logic ===
+        if abs(self.car.speed) > 0.1 and self.hunger > 0:
+            self.hunger -= 0.012 / 4  # 4x slower than fuel
+            self.hunger = max(self.hunger, 0)
+
+        # === Eating logic (now uses F, only if enough money and no customer in car) ===
+        self.is_eating = False
+        FOOD_PRICE = 20
+        can_eat = (
+            self.is_on_food_tile()
+            and self.car.is_handbraking()
+            and self.money >= FOOD_PRICE
+            and not (self.current_job and self.job_state == "dropoff")  # No customer in car
+        )
+        if can_eat and keys[pygame.K_f]:
+            if self.hunger < self.max_hunger:
+                self.is_eating = True
+                self.hunger = self.max_hunger
+                self.money -= FOOD_PRICE
+                self.cash_animations.append({
+                    "text": f"-${FOOD_PRICE}",
+                    "color": (255, 40, 40),
+                    "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 110),
+                    "alpha": 200,
+                    "lifetime": 0.7
+                })
+
+        # === Out of hunger (starvation) ===
+        if self.hunger <= 0:
+            self.car.speed = 0  # Stop the car
+            # Show "STARVED TO DEATH" message in the center of the screen
+            message = "STARVED TO DEATH"
+            font = pygame.font.Font(self.font_path, 64)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect(center=screen_rect.center)
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 80
+            bg_height = text_rect.height + 60
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect(center=screen_rect.center)
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+            pygame.display.flip()
+            return  # Skip rest of loop if dead
+
         # Draw game map
         screen.fill((50, 50, 50))
         for y, row in enumerate(self.tile_map):
@@ -392,6 +460,40 @@ class Game:
             screen_rect = self.main.screen.get_rect()
             text_rect = text_surface.get_rect()
             group_center = (screen_rect.centerx, screen_rect.height - 60)
+            text_rect.center = group_center
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 60
+            bg_height = text_rect.height + 30
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect()
+            bg_rect.center = group_center
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+        # FOOD MESSAGE
+        if (
+            self.is_on_food_tile()
+            and self.car.is_handbraking()
+            and not (self.current_job and self.job_state == "dropoff")
+            and self.hunger < self.max_hunger
+        ):
+            if self.money >= FOOD_PRICE:
+                message = "Hold F to eat"
+            else:
+                message = "Not enough money for food"
+            font = pygame.font.Font(self.font_path, 40)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect()
+            group_center = (screen_rect.centerx, screen_rect.height - 20)
             text_rect.center = group_center
             shadow_rect = text_rect.copy()
             shadow_rect.x += 4
@@ -512,10 +614,37 @@ class Game:
         # Bar border
         pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
 
-        if self.brake_pressed:
-            # Show brake indicator if brake is pressed
-            pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
-            self._draw_text("BRAKE", dash_rect.x + 15, dash_rect.bottom - 24, (0, 0, 0), size=20)
+        # === Hunger progress bar ===
+        bar_width = 140
+        bar_height = 24
+        bar_x = center_x - bar_width // 2
+        bar_y = bar_y + bar_height + 16  # Place below fuel bar
+
+        hunger_level = max(0, min(self.hunger, 100))
+        fill_width = int(bar_width * (hunger_level / 100))
+
+        # Bar background
+        pygame.draw.rect(self.main.screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height), border_radius=8)
+        # Bar fill (color changes with level)
+        if hunger_level > 60:
+            fill_color = (0, 200, 200)
+        elif hunger_level > 30:
+            fill_color = (255, 200, 0)
+        else:
+            fill_color = (255, 0, 0)
+        pygame.draw.rect(self.main.screen, fill_color, (bar_x, bar_y, fill_width, bar_height), border_radius=8)
+        # Bar border
+        pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
+
+        # Hunger label
+        hunger_label = "Hunger"
+        font_hunger = pygame.font.Font(self.font_path, 24)
+        hunger_surface = font_hunger.render(hunger_label, True, (255, 255, 255))
+        hunger_shadow = font_hunger.render(hunger_label, True, (40, 40, 40))
+        hunger_x = center_x - hunger_surface.get_width() // 2
+        hunger_y = bar_y - hunger_surface.get_height() - 4
+        self.main.screen.blit(hunger_shadow, (hunger_x + 2, hunger_y + 2))
+        self.main.screen.blit(hunger_surface, (hunger_x, hunger_y))
 
         # Draw only the red "P" in a circle in the dashboard if handbrake is active
         if self.car.is_handbraking():
@@ -553,6 +682,19 @@ class Game:
         self.main.screen.blit(score_shadow, (score_x + 2, score_y + 2))
         self.main.screen.blit(score_surface, (score_x, score_y))
 
+        # === Display Customer Status ===
+        if self.current_job and self.job_state == "dropoff":
+            customer_status = "Customer: IN CAR"
+        else:
+            customer_status = "Customer: NONE"
+        font_cust = pygame.font.Font(self.font_path, 24)
+        cust_surface = font_cust.render(customer_status, True, (255, 255, 255))
+        cust_shadow = font_cust.render(customer_status, True, (40, 40, 40))
+        cust_x = 20
+        cust_y = score_y + score_surface.get_height() + 4
+        self.main.screen.blit(cust_shadow, (cust_x + 2, cust_y + 2))
+        self.main.screen.blit(cust_surface, (cust_x, cust_y))
+
         # === Floating Money Animation ===
         for anim in self.cash_animations[:]:
             font_float = pygame.font.Font(self.font_path, 28)
@@ -573,7 +715,7 @@ class Game:
                 self.cash_animations.remove(anim)
 
     def draw_minimap(self):
-        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump icons."""
+        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump/food icons."""
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
@@ -585,6 +727,12 @@ class Game:
             icon_x = int(tx * scale - self.pump_icon_img.get_width() // 2)
             icon_y = int(ty * scale - self.pump_icon_img.get_height() // 2)
             minimap.blit(self.pump_icon_img, (icon_x, icon_y))
+
+        # Draw food icons on minimap
+        for tx, ty in self.food_tile_locations:
+            icon_x = int(tx * scale - self.food_icon_img.get_width() // 2)
+            icon_y = int(ty * scale - self.food_icon_img.get_height() // 2)
+            minimap.blit(self.food_icon_img, (icon_x, icon_y))
 
         # Show only the current target (pickup or dropoff)
         if self.current_job is not None and self.job_state:
