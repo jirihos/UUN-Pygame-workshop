@@ -107,7 +107,7 @@ class CarSprite(pygame.sprite.Sprite):
 
         # Fuel usage
         if abs(self.speed) > 0.1 and self.fuel > 0:
-            self.fuel -= 0.005
+            self.fuel -= 0.012
             self.fuel = max(self.fuel, 0)
 
 

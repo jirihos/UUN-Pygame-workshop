@@ -14,7 +14,7 @@ class Game:
         self.sprites.add(self.car)
         self.brake_pressed = False
         self.money = 0 
-
+        self.is_refueling = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -118,6 +118,23 @@ class Game:
             return tile in self.WALKABLE_TILES
         return False
 
+    def is_on_pump_tile(self):
+        car_tile_x = int(self.car.pos.x) // self.tile_size
+        car_tile_y = int(self.car.pos.y) // self.tile_size
+        return (car_tile_x, car_tile_y) in self.pump_tile_locations
+
+    def get_nearest_pump_tile(self):
+        car_pos = self.car.pos
+        min_dist = float('inf')
+        nearest = None
+        for x, y in self.pump_tile_locations:
+            pump_pos = pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
+            dist = car_pos.distance_to(pump_pos)
+            if dist < min_dist:
+                min_dist = dist
+                nearest = pump_pos
+        return nearest
+
     def loop(self, dt):
         screen = self.main.screen
 
@@ -128,7 +145,8 @@ class Game:
                 if event.key == pygame.K_SPACE:
                     self.car.toggle_handbrake()
                 elif event.key == pygame.K_ESCAPE:
-                    self.main.quit()
+                    from scenes.mainmenu import MainMenu
+                    self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps  # Toggle FPS display
 
@@ -151,6 +169,13 @@ class Game:
                     print("[JOB] Passenger dropped off. Job complete.")
                     self.money += random.randint(15,25)
                     self.new_job()
+        # Refueling logic
+        self.is_refueling = False
+        if self.is_on_pump_tile() and self.car.is_handbrake():
+            if keys[pygame.K_f]:
+                self.is_refueling = True
+                if self.car.fuel < self.car.max_fuel:
+                    self.car.fuel = min(self.car.fuel + 0.5, self.car.max_fuel)
 
         screen.fill((50, 50, 50))
 
@@ -161,7 +186,7 @@ class Game:
                 if tile_img:
                     screen.blit(tile_img, pos)
 
-                # === Draw red outline for unwalkable tiles (debug) ===
+                # Draw red outline for unwalkable tiles (debug)
                 # if tile_id not in self.WALKABLE_TILES:
                 #     pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
 
@@ -177,14 +202,96 @@ class Game:
             screen.blit(fps_shadow, (2, 2))
             screen.blit(fps_surface, (0, 0))
 
-        if self.current_job is not None:
-             screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-             screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
-             screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
-    
+        # self.current_job debug info (optional)
+        # if self.current_job is not None:
+        #     screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
+        #     screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
+        #     screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
 
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
+
+        # OUT OF FUEL MESSAGE
+        if self.car.fuel <= 0:
+            message = "OUT OF FUEL"
+            font = pygame.font.Font(self.font_path, 64)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect(center=screen_rect.center)
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 80
+            bg_height = text_rect.height + 60
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect(center=screen_rect.center)
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+        # REFUEL MESSAGE
+        if self.is_on_pump_tile() and self.car.is_handbrake() and self.car.fuel < self.car.max_fuel:
+            message = "Hold F to refuel"
+            font = pygame.font.Font(self.font_path, 40)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect()
+            group_center = (screen_rect.centerx, screen_rect.height - 60)
+            text_rect.center = group_center
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 60
+            bg_height = text_rect.height + 30
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect()
+            bg_rect.center = group_center
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+        # FUEL ARROW TO PUMP
+        if 0 < self.car.fuel < 30 and self.pump_tile_locations:
+            nearest_pump = self.get_nearest_pump_tile()
+            if nearest_pump:
+                # Car position on screen
+                car_screen_x = self.car.pos.x - camera_x
+                car_screen_y = self.car.pos.y - camera_y
+                # Pump position on screen
+                pump_screen_x = nearest_pump.x - camera_x
+                pump_screen_y = nearest_pump.y - camera_y
+                # Direction vector
+                dir_vec = pygame.Vector2(pump_screen_x - car_screen_x, pump_screen_y - car_screen_y)
+                if dir_vec.length() > 1:
+                    dir_vec = dir_vec.normalize()
+                    # Arrow will be 80 pixels from the car towards the pump
+                    arrow_center = pygame.Vector2(car_screen_x, car_screen_y) + dir_vec * 80
+                    angle = math.degrees(math.atan2(-dir_vec.y, dir_vec.x))
+                    # Draw arrow (triangle)
+                    arrow_size = 36
+                    points = [
+                        (arrow_center.x + math.cos(math.radians(angle)) * arrow_size,
+                         arrow_center.y - math.sin(math.radians(angle)) * arrow_size),
+                        (arrow_center.x + math.cos(math.radians(angle + 140)) * (arrow_size // 2),
+                         arrow_center.y - math.sin(math.radians(angle + 140)) * (arrow_size // 2)),
+                        (arrow_center.x + math.cos(math.radians(angle - 140)) * (arrow_size // 2),
+                         arrow_center.y - math.sin(math.radians(angle - 140)) * (arrow_size // 2)),
+                    ]
+                    # Draw shadow under the arrow first
+                    shadow_points = [(x+3, y+3) for x, y in points]
+                    pygame.draw.polygon(screen, (40, 40, 40), shadow_points)
+                    # Then draw the red arrow
+                    pygame.draw.polygon(screen, (220, 40, 40), points)
 
         pygame.display.flip()
 
@@ -230,30 +337,27 @@ class Game:
         self.main.screen.blit(fuel_shadow, (fuel_x + 2, fuel_y + 2))
         self.main.screen.blit(fuel_surface, (fuel_x, fuel_y))
 
-        # Fuel gauge centered under the fuel label
-        blocks = 5
-        block_width = 20
-        block_height = 30
-        spacing = 5
-        gauge_width = blocks * block_width + (blocks - 1) * spacing
-        gauge_x = center_x - gauge_width // 2
-        gauge_y = fuel_y + fuel_surface.get_height() + 8
+        # === Fuel progress bar ===
+        bar_width = 140
+        bar_height = 24
+        bar_x = center_x - bar_width // 2
+        bar_y = fuel_y + fuel_surface.get_height() + 8
 
         fuel_level = max(0, min(self.car.fuel, 100))
-        for i in range(blocks):
-            threshold = (i + 1) * (100 / blocks)
-            color = (100, 100, 100)
-            if fuel_level >= threshold:
-                if i >= 3:
-                    color = (0, 200, 0)
-                elif i == 2:
-                    color = (255, 200, 0)
-                else:
-                    color = (255, 0, 0)
+        fill_width = int(bar_width * (fuel_level / 100))
 
-            rect = pygame.Rect(gauge_x + i * (block_width + spacing), gauge_y, block_width, block_height)
-            pygame.draw.rect(self.main.screen, color, rect)
-            pygame.draw.rect(self.main.screen, (255, 255, 255), rect, 2)
+        # Bar background
+        pygame.draw.rect(self.main.screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height), border_radius=8)
+        # Bar fill (color changes with level)
+        if fuel_level > 60:
+            fill_color = (0, 200, 0)
+        elif fuel_level > 30:
+            fill_color = (255, 200, 0)
+        else:
+            fill_color = (255, 0, 0)
+        pygame.draw.rect(self.main.screen, fill_color, (bar_x, bar_y, fill_width, bar_height), border_radius=8)
+        # Bar border
+        pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
 
         if self.brake_pressed:
             pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
