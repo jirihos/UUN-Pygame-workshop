@@ -132,7 +132,8 @@ class Game:
                 if event.key == pygame.K_SPACE:
                     self.car.toggle_handbrake()
                 elif event.key == pygame.K_ESCAPE:
-                    self.main.quit()
+                    from scenes.mainmenu import MainMenu
+                    self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps  # Toggle FPS display
 
