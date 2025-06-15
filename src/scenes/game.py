@@ -782,7 +782,8 @@ class Game:
         pygame.display.flip()
 
     def save_high_score(self):
-        score_file = "highscore.txt"
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        score_file = os.path.join(base_path, "highscore.txt")
         try:
             # When file exists, read the old score
             if os.path.exists(score_file):

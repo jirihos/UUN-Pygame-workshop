@@ -45,7 +45,8 @@ class MainMenu():
 
         # --- Reset High Score Button (directly under PLAY, same style/size) ---
         def reset_high_score():
-            score_file = "highscore.txt"
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            score_file = os.path.join(base_path, "highscore.txt")
             try:
                 with open(score_file, "w") as f:
                     f.write("0")
@@ -97,7 +98,8 @@ class MainMenu():
         self.high_score = self.load_high_score()
 
     def load_high_score(self):
-        score_file = "highscore.txt"
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        score_file = os.path.join(base_path, "highscore.txt")
         try:
             if os.path.exists(score_file):
                 with open(score_file, "r") as f:
