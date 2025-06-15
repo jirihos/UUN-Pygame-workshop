@@ -50,6 +50,14 @@ class Game:
         self.passenger_sprite = None
         self.passenger_visible = False
         self.accepting_jobs = True  # Whether new jobs are generated automatically
+        self.job_counter = 0
+        self.timed_job_interval = 3
+        self.is_timed_job = False
+        self.timed_job_duration = 60  # seconds
+        self.timed_job_remaining = 0
+        self.timed_job_active = False
+        self.timed_job_timer = None
+        self.font_big = pygame.font.Font(None, 48)
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -174,12 +182,31 @@ class Game:
             self.job_state = None
             return
         
+        # Track job count and decide if it's a timed one
+        self.job_counter += 1
+        self.is_timed_job = (self.job_counter % self.timed_job_interval == 0)
+        
+        # Determine time limit if this is a timed job
+        time_limit = self.timed_job_duration if self.is_timed_job else None
+
         # Randomly select two different pickup locations for pickup and delivery
         locs = random.sample(self.pickup_tile_locations, 2)
-        self.current_job = Job(locs[0], locs[1])
+        self.current_job = Job(locs[0], locs[1], is_timed=self.is_timed_job, time_limit=time_limit)
+
         self.job_state = "pickup"
         self.pending_job = None
-        print(f"[JOB] New job created: {locs}")
+        print(f"[JOB] New job created: {locs} | Timed: {self.is_timed_job}")
+
+        if self.pending_job:
+            self.current_job = self.pending_job
+            self.job_state = "pickup"
+            self.pending_job = None
+
+            # Start timer if job is timed
+            if self.current_job.is_timed:
+                self.timed_job_timer = self.current_job.time_limit
+                print(f"[TIMER] Started countdown: {self.timed_job_timer}s")
+
 
     def _create_minimap(self):
         """Creates the minimap surface from the tile_map."""
@@ -466,6 +493,14 @@ class Game:
 
             pygame.display.flip()
             return  # Skip rest of loop if dead
+        
+        # === Timed Job Countdown ===
+        if self.current_job and self.current_job.is_timed and self.timed_job_timer is not None:
+            self.timed_job_timer -= dt
+            if self.timed_job_timer <= 0:
+                self.timed_job_timer = None
+                print("[TIMER] Timed job expired — no bonus.")
+
 
         # Draw game map
         screen.fill((50, 50, 50))
@@ -712,6 +747,13 @@ class Game:
                 "alpha": 200,
                 "lifetime": 0.7
             })
+        
+        # === Draw Timer ===
+        if self.current_job and self.current_job.is_timed and self.timed_job_timer is not None:
+            timer_text = f"{int(self.timed_job_timer)}s"
+            timer_surface = self.font_big.render(timer_text, True, (255, 0, 0))
+            timer_rect = timer_surface.get_rect(center=(self.main.WIDTH // 2, 40))
+            screen.blit(timer_surface, timer_rect)
 
         pygame.display.flip()
 
