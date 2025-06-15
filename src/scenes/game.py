@@ -78,6 +78,8 @@ class Game:
         # Load PNG backgrounds for minimap and dashboard
         self.dashboard_bg_img = pygame.image.load(os.path.join(base_path, "tiles/game/game_board_background.png")).convert_alpha()
 
+        self.show_fps = False  # FPS display toggle
+
     def new_job(self):
         if len(self.pickup_tile_locations) < 2:
             self.current_job = None
@@ -121,6 +123,8 @@ class Game:
                     self.car.toggle_handbrake()
                 elif event.key == pygame.K_ESCAPE:
                     self.main.quit()
+                elif event.key == pygame.K_l:
+                    self.show_fps = not self.show_fps  # Toggle FPS display
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -139,28 +143,27 @@ class Game:
                     screen.blit(tile_img, pos)
 
                 # === Draw red outline for unwalkable tiles (debug) ===
-                if tile_id not in self.WALKABLE_TILES:
-                    pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
+                # if tile_id not in self.WALKABLE_TILES:
+                #     pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
 
         self.sprites.draw(screen)
 
-        # Draw FPS and job info
-        small_font = pygame.font.Font(self.font_path, 16)
-        screen.blit(small_font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
+        # Draw FPS only if toggled on
+        if self.show_fps:
+            small_font = pygame.font.Font(self.font_path, 32)
+            fps_text = f"FPS: {self.main.clock.get_fps():.0f}"
+            fps_shadow = small_font.render(fps_text, True, (40, 40, 40))
+            fps_surface = small_font.render(fps_text, True, (0, 255, 0))
+            screen.blit(fps_shadow, (2, 2))
+            screen.blit(fps_surface, (0, 0))
 
-        if self.current_job is not None:
-            screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-            screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
-            screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
+        # if self.current_job is not None:
+        #     screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
+        #     screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
+        #     screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
 
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
-
-        # for debugging
-        if self.current_job is not None:
-            screen.blit(self.font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-            screen.blit(self.font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
-            screen.blit(self.font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
 
         pygame.display.flip()
 
