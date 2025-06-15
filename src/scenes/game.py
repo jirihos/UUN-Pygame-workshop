@@ -50,13 +50,12 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [429, 850]
+        self.WALKABLE_TILES = [0, 22, 850, 779, 674, 709]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
 
     def is_walkable(self, x, y): 
-        return True
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
         if 0 <= tile_y < len(self.tile_map) and 0 <= tile_x < len(self.tile_map[0]):
