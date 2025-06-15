@@ -106,7 +106,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [0, 22, 814, 850, 851, 852, 779, 674, 709, 782] # List of ID's of walkable tiles
+        self.WALKABLE_TILES = [0, 22, 676, 814, 850, 851, 852, 779, 674, 709, 782] # List of ID's of walkable tiles
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -115,17 +115,21 @@ class Game:
         self.pickup_tile_locations = []
         self.pump_tile_locations = []
         self.food_tile_locations = []
+        self.service_tile_locations = []
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
                 PICKUP_TILE = 851
                 PUMP_TILE = 852
                 FOOD_TILE = 814
+                SERVICE_TILE = 676
                 if tile_id == PICKUP_TILE:
                     self.pickup_tile_locations.append((x, y))
                 elif tile_id == PUMP_TILE:
                     self.pump_tile_locations.append((x, y))
                 elif tile_id == FOOD_TILE:
                     self.food_tile_locations.append((x, y))
+                elif tile_id == SERVICE_TILE:
+                    self.service_tile_locations.append((x, y))
         
 
         self.current_job = None
@@ -171,11 +175,6 @@ class Game:
         self.job_state = "pickup"
         self.pending_job = None
         print(f"[JOB] New job created: {locs}")
-
-        """print("Job State:", self.job_state)
-        print("Pending Job:", self.pending_job)
-        print("Current Job:", self.current_job)"""
-
 
     def _create_minimap(self):
         """Creates the minimap surface from the tile_map."""
@@ -462,10 +461,6 @@ class Game:
                 if tile_img:
                     screen.blit(tile_img, pos)
 
-                # Draw red outline for unwalkable tiles (debug)
-                # if tile_id not in self.WALKABLE_TILES:
-                #     pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
-
         self.sprites.draw(screen)
 
         small_font = pygame.font.Font(self.font_path, 32)
@@ -477,12 +472,6 @@ class Game:
             fps_surface = small_font.render(fps_text, True, (0, 255, 0))
             screen.blit(fps_shadow, (2, 2))
             screen.blit(fps_surface, (0, 0))
-
-        # self.current_job debug info (optional)
-        # if self.current_job is not None:
-        #     screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
-        #     screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
-        #     screen.blit(small_font.render(f"Job state: {self.job_state}", True, (250, 80, 100)), (900, 0))
 
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
@@ -651,10 +640,6 @@ class Game:
                     # Then draw the red arrow
                     pygame.draw.polygon(screen, (220, 40, 40), points)
 
-        # if self.pending_job:
-            # Show notification for new job
-            # self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
-
         self.passenger_manager.update(dt)
         self.passenger_manager.draw(screen, camera_x, camera_y)
 
@@ -688,16 +673,12 @@ class Game:
         - Cash counter and floating cash animations
         """
 
-        # Draws the dashboard with speed, fuel, cash, and indicators
-        # Make the dashboard PNG higher to fit all bars and center content
-        dash_rect = pygame.Rect(20, self.main.screen.get_height() - 220, 240, 200)  # increased height
+        dash_rect = pygame.Rect(20, self.main.screen.get_height() - 220, 240, 200)
         dash_bg_rect = dash_rect.inflate(24, 32)
 
-        # Scale and draw PNG background for dashboard (now higher)
         dashboard_bg_scaled = pygame.transform.scale(self.dashboard_bg_img, (dash_bg_rect.width, dash_bg_rect.height))
         self.main.screen.blit(dashboard_bg_scaled, dash_bg_rect.topleft)
 
-        # Center area for content inside the dashboard background
         center_x = dash_bg_rect.x + dash_bg_rect.width // 2
 
         # === Speed Display ===
