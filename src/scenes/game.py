@@ -145,12 +145,16 @@ class Game:
 
         # Load PNG icon for pump (for minimap)
         self.pump_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/gas-pump-alt.png")).convert_alpha()
-        self.pump_icon_img = pygame.transform.scale(self.pump_icon_img, (18, 18))  # Adjust size as needed
+        self.pump_icon_img = pygame.transform.scale(self.pump_icon_img, (18, 18))
 
         # Load PNG icon for food (for minimap)
         self.food_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/apple-whole.png")).convert_alpha()
-        self.food_icon_img = pygame.transform.scale(self.food_icon_img, (18, 18))  # Adjust size as needed
-
+        self.food_icon_img = pygame.transform.scale(self.food_icon_img, (18, 18))
+        
+        # Load PNG icon for service (for minimap)
+        self.service_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/wrench.png")).convert_alpha()
+        self.service_icon_img = pygame.transform.scale(self.service_icon_img, (18, 18))
+        
         self.show_fps = False  # FPS display toggle
 
         self.passenger_group = pygame.sprite.Group()
@@ -226,6 +230,11 @@ class Game:
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.food_tile_locations
 
+    def is_on_service_tile(self):
+        car_tile_x = int(self.car.pos.x) // self.tile_size
+        car_tile_y = int(self.car.pos.y) // self.tile_size
+        return (car_tile_x, car_tile_y) in self.service_tile_locations
+
     def get_nearest_pump_tile(self):
         """Finds the nearest fuel pump to the car's current position.
 
@@ -251,6 +260,11 @@ class Game:
         Args:
             dt (float): Time delta since last frame (for smooth updates).
         """
+
+        # === Service logic (upgrade speed for $20, only if no customer in car) ===
+        SERVICE_PRICE = 20
+        SPEED_BOOST = 0.3  # Small speed boost per service = 1.5Km/h
+        MAX_SPEED_LIMIT = 16  # Prevent unlimited upgrades 16 = 80Km/h
 
         screen = self.main.screen
         self.passenger_manager.update(dt)
@@ -540,7 +554,7 @@ class Game:
         # Refuel message logic
         if self.is_on_pump_tile() and self.car.is_handbraking():
             if self.current_job and self.job_state == "dropoff":
-                message = "Cannot refuel – customer in car"
+                message = "Cannot refuel customer in car"
             elif self.car.fuel < self.car.max_fuel:
                 if self.money < (0.5 / FUEL_PER_DOLLAR):
                     message = "Not enough money for refueling"
@@ -575,10 +589,10 @@ class Game:
         # Food message logic
         if self.is_on_food_tile() and self.car.is_handbraking():
             if self.current_job and self.job_state == "dropoff":
-                message = "Cannot eat – customer in car"
+                message = "Cannot eat customer in car"
             elif self.hunger < self.max_hunger:
                 if self.money >= FOOD_PRICE:
-                    message = "Hold F to eat"
+                    message = "Press F to eat"
                 else:
                     message = "Not enough money for food"
             else:
@@ -592,6 +606,40 @@ class Game:
                 screen_rect = self.main.screen.get_rect()
                 text_rect = text_surface.get_rect()
                 group_center = (screen_rect.centerx, screen_rect.height - 60)
+                text_rect.center = group_center
+                shadow_rect = text_rect.copy()
+                shadow_rect.x += 4
+                shadow_rect.y += 4
+
+                bg_width = text_rect.width + 60
+                bg_height = text_rect.height + 30
+                bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+                bg_rect = bg_img.get_rect()
+                bg_rect.center = group_center
+                self.main.screen.blit(bg_img, bg_rect)
+
+                self.main.screen.blit(shadow_surface, shadow_rect)
+                self.main.screen.blit(text_surface, text_rect)
+
+        # Service message logic
+        if self.is_on_service_tile() and self.car.is_handbraking():
+            if self.current_job and self.job_state == "dropoff":
+                message = "Cannot upgrade customer in car"
+            elif self.car.max_speed >= MAX_SPEED_LIMIT:
+                message = "Maximum speed reached"
+            elif self.money >= SERVICE_PRICE:
+                message = "Press F to upgrade speed ($20)"
+            else:
+                message = "Not enough money for upgrade"
+            if message:
+                font = pygame.font.Font(self.font_path, 40)
+                text_color = (255, 255, 255)
+                shadow_color = (40, 40, 40)
+                text_surface = font.render(message, True, text_color)
+                shadow_surface = font.render(message, True, shadow_color)
+                screen_rect = self.main.screen.get_rect()
+                text_rect = text_surface.get_rect()
+                group_center = (screen_rect.centerx, screen_rect.height - 120)
                 text_rect.center = group_center
                 shadow_rect = text_rect.copy()
                 shadow_rect.x += 4
@@ -646,6 +694,25 @@ class Game:
         # Draw the game objects
         self.sprites.draw(screen)
         self.passenger_group.draw(screen)  # Draw the passenger
+
+        # === Service upgrade logic ===
+        can_upgrade = (
+            self.is_on_service_tile()
+            and self.car.is_handbraking()
+            and self.money >= SERVICE_PRICE
+            and not (self.current_job and self.job_state == "dropoff")
+            and self.car.max_speed < MAX_SPEED_LIMIT
+        )
+        if can_upgrade and keys[pygame.K_f]:
+            self.car.max_speed = min(self.car.max_speed + SPEED_BOOST, MAX_SPEED_LIMIT)
+            self.money -= SERVICE_PRICE
+            self.cash_animations.append({
+                "text": f"-${SERVICE_PRICE}",
+                "color": (40, 180, 255),
+                "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 140),
+                "alpha": 200,
+                "lifetime": 0.7
+            })
 
         pygame.display.flip()
 
@@ -845,7 +912,7 @@ class Game:
                 self.cash_animations.remove(anim)
 
     def draw_minimap(self):
-        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump/food icons."""
+        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump/food/service icons."""
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
@@ -863,6 +930,12 @@ class Game:
             icon_x = int(tx * scale - self.food_icon_img.get_width() // 2)
             icon_y = int(ty * scale - self.food_icon_img.get_height() // 2)
             minimap.blit(self.food_icon_img, (icon_x, icon_y))
+
+        # Draw service icons on minimap
+        for tx, ty in self.service_tile_locations:
+            icon_x = int(tx * scale - self.service_icon_img.get_width() // 2)
+            icon_y = int(ty * scale - self.service_icon_img.get_height() // 2)
+            minimap.blit(self.service_icon_img, (icon_x, icon_y))
 
         # Show only the current target (pickup or dropoff)
         if self.current_job is not None and self.job_state:
