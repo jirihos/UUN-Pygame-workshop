@@ -128,6 +128,29 @@ class Game:
 
         pygame.display.flip()
 
+        # === Job Progress Logic ===
+        if self.current_job and self.job_state:
+            if self.job_state == "pickup":
+                if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.1:
+                    print("[JOB] Passenger picked up.")
+                    self.job_state = "dropoff"
+
+            elif self.job_state == "dropoff":
+                if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.1:
+                    print("[JOB] Passenger dropped off. Job complete.")
+                    # TODO: Add payment here
+                    self.new_job()
+
+        # === Visual Pickup/Dropoff Zones ===
+        if self.current_job:
+            pickup_world = self.tile_to_world(self.current_job.pickup_tile_loc)
+            dropoff_world = self.tile_to_world(self.current_job.delivery_tile_loc)
+
+            pygame.draw.circle(screen, (0, 255, 0), (int(pickup_world.x - camera_x), int(pickup_world.y - camera_y)), 15, 3)
+            pygame.draw.circle(screen, (0, 0, 255), (int(dropoff_world.x - camera_x), int(dropoff_world.y - camera_y)), 15, 3)
+
+
+
     def draw_dashboard(self):
         dash_rect = pygame.Rect(20, self.main.HEIGHT - 100, 240, 80)
         pygame.draw.rect(self.main.screen, (20, 20, 20), dash_rect, border_radius=10)
@@ -166,6 +189,14 @@ class Game:
         if self.car.is_handbraking():
             pygame.draw.circle(self.main.screen, (200, 0, 0), (dash_rect.right - 20, dash_rect.bottom - 20), 10)
             self._draw_text("P", dash_rect.right - 25, dash_rect.bottom - 28, (0, 0, 0), size=20)
+    def tile_to_world(self, tile_pos):
+        x, y = tile_pos
+        return pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
+
+    def is_at_tile(self, tile_pos, radius=30):
+        world_pos = self.tile_to_world(tile_pos)
+        return self.car.pos.distance_to(world_pos) <= radius
+
 
     def _draw_text(self, text, x, y, color=(255, 255, 255), size=36):
         font = pygame.font.SysFont(None, size)
