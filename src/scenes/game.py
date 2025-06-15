@@ -122,6 +122,18 @@ class Game:
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.pump_tile_locations
 
+    def get_nearest_pump_tile(self):
+        car_pos = self.car.pos
+        min_dist = float('inf')
+        nearest = None
+        for x, y in self.pump_tile_locations:
+            pump_pos = pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
+            dist = car_pos.distance_to(pump_pos)
+            if dist < min_dist:
+                min_dist = dist
+                nearest = pump_pos
+        return nearest
+
     def loop(self, dt):
         screen = self.main.screen
 
@@ -144,9 +156,9 @@ class Game:
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
 
-        # === Refueling logic ===
+        # Refueling logic
         self.is_refueling = False
-        if self.is_on_pump_tile() and self.car.is_handbraking():
+        if self.is_on_pump_tile() and self.car.is_handbrake():
             if keys[pygame.K_f]:
                 self.is_refueling = True
                 if self.car.fuel < self.car.max_fuel:
@@ -161,7 +173,7 @@ class Game:
                 if tile_img:
                     screen.blit(tile_img, pos)
 
-                # === Draw red outline for unwalkable tiles (debug) ===
+                # Draw red outline for unwalkable tiles (debug)
                 # if tile_id not in self.WALKABLE_TILES:
                 #     pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
 
@@ -176,6 +188,7 @@ class Game:
             screen.blit(fps_shadow, (2, 2))
             screen.blit(fps_surface, (0, 0))
 
+        # self.current_job debug info (optional)
         # if self.current_job is not None:
         #     screen.blit(small_font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
         #     screen.blit(small_font.render(f"Delivery tile: {self.current_job.delivery_tile_loc}", True, (250, 80, 100)), (500, 0))
@@ -184,7 +197,7 @@ class Game:
         self.draw_dashboard()
         self.draw_minimap()  # Draw the minimap
 
-        # === OUT OF FUEL MESSAGE ===
+        # OUT OF FUEL MESSAGE
         if self.car.fuel <= 0:
             message = "OUT OF FUEL"
             font = pygame.font.Font(self.font_path, 64)
@@ -207,8 +220,8 @@ class Game:
             self.main.screen.blit(shadow_surface, shadow_rect)
             self.main.screen.blit(text_surface, text_rect)
 
-        # === REFUEL MESSAGE ===
-        if self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
+        # REFUEL MESSAGE
+        if self.is_on_pump_tile() and self.car.is_handbrake() and self.car.fuel < self.car.max_fuel:
             message = "Hold F to refuel"
             font = pygame.font.Font(self.font_path, 40)
             text_color = (255, 255, 255)
@@ -232,6 +245,39 @@ class Game:
 
             self.main.screen.blit(shadow_surface, shadow_rect)
             self.main.screen.blit(text_surface, text_rect)
+
+        # FUEL ARROW TO PUMP
+        if 0 < self.car.fuel < 30 and self.pump_tile_locations:
+            nearest_pump = self.get_nearest_pump_tile()
+            if nearest_pump:
+                # Car position on screen
+                car_screen_x = self.car.pos.x - camera_x
+                car_screen_y = self.car.pos.y - camera_y
+                # Pump position on screen
+                pump_screen_x = nearest_pump.x - camera_x
+                pump_screen_y = nearest_pump.y - camera_y
+                # Direction vector
+                dir_vec = pygame.Vector2(pump_screen_x - car_screen_x, pump_screen_y - car_screen_y)
+                if dir_vec.length() > 1:
+                    dir_vec = dir_vec.normalize()
+                    # Arrow will be 80 pixels from the car towards the pump
+                    arrow_center = pygame.Vector2(car_screen_x, car_screen_y) + dir_vec * 80
+                    angle = math.degrees(math.atan2(-dir_vec.y, dir_vec.x))
+                    # Draw arrow (triangle)
+                    arrow_size = 36
+                    points = [
+                        (arrow_center.x + math.cos(math.radians(angle)) * arrow_size,
+                         arrow_center.y - math.sin(math.radians(angle)) * arrow_size),
+                        (arrow_center.x + math.cos(math.radians(angle + 140)) * (arrow_size // 2),
+                         arrow_center.y - math.sin(math.radians(angle + 140)) * (arrow_size // 2)),
+                        (arrow_center.x + math.cos(math.radians(angle - 140)) * (arrow_size // 2),
+                         arrow_center.y - math.sin(math.radians(angle - 140)) * (arrow_size // 2)),
+                    ]
+                    # Draw shadow under the arrow first
+                    shadow_points = [(x+3, y+3) for x, y in points]
+                    pygame.draw.polygon(screen, (40, 40, 40), shadow_points)
+                    # Then draw the red arrow
+                    pygame.draw.polygon(screen, (220, 40, 40), points)
 
         pygame.display.flip()
 
