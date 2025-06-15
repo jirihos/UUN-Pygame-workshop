@@ -5,8 +5,8 @@ class Passenger(pygame.sprite.Sprite):
         super().__init__()
         self.sprite_sheet = sprite_sheet  # <- make sure this is passed and stored
         self.sprite_sheet = self.sprite_sheet.subsurface(pygame.Rect(16, 16, 96, 96))  # Ensure the sprite sheet is loaded correctly
-        background_color = (77, 253, 252)
-        self.sprite_sheet.set_colorkey(background_color)
+        self.background_color = (77, 253, 252)
+        self.sprite_sheet.set_colorkey(self.background_color)
         self.frames = []
         self.load_frames()
         self.current_frame = 0
@@ -19,6 +19,8 @@ class Passenger(pygame.sprite.Sprite):
         sprite_width, sprite_height = 16, 16
         for i in range(3):  # Walking down
             frame = self.sprite_sheet.subsurface(pygame.Rect(0, i * sprite_height, sprite_width, sprite_height))
+            frame = pygame.transform.scale(frame, (32, 32))
+            frame.set_colorkey(self.background_color)
             self.frames.append(frame)
 
     def update(self, dt):
