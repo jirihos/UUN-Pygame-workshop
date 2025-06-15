@@ -5,7 +5,7 @@ from menubutton import MenuButton
 
 class MainMenu():
     def __init__(self, main):
-        self.intro_duration = 3000
+        self.intro_duration = 6000
         self.intro_timer = self.intro_duration
         self.main = main
 
@@ -67,49 +67,64 @@ class MainMenu():
         screen.blit(self.background, (0, 0))
 
         if intro:
-            # Calculate elapsed time since intro started
-            elapsed = self.intro_duration - self.intro_timer
-            # Animate dots every 300 ms, cycle 0-3
-            num_dots = (elapsed // 300) % 4
-            loading_text = "Loading" + ("." * int(num_dots))
-            loading_font = pygame.font.SysFont(None, 48)
-            loading_surface = loading_font.render(loading_text, True, (252, 186, 3))
-            loading_shadow = loading_font.render(loading_text, True, (40, 40, 40))
-            loading_x = (screen.get_width() - loading_surface.get_width()) // 2
-            loading_y = screen.get_height() // 2 - 40
-            screen.blit(loading_shadow, (loading_x + 2, loading_y + 2))
-            screen.blit(loading_surface, (loading_x, loading_y))
-
-            # Authors with shadow (always visible during intro)
-            authors_font = pygame.font.SysFont(None, 36)
-            authors_lines = [
-                "Authors:",
+            # --- Custom intro animation ---
+            studio_fadein = 1000
+            author_fadein = 800
+            fade_time = 500
+            authors = [
                 "Jiří Hošek",
                 "Martin Nebehay",
                 "Jiří Mrkvica",
                 "Samuel Všelko"
             ]
-            # Calculate total height and max width
-            line_surfaces = [authors_font.render(line, True, (252, 186, 3)) for line in authors_lines]
-            total_height = sum(s.get_height() for s in line_surfaces) + (len(line_surfaces) - 1) * 5
-            max_width = max(s.get_width() for s in line_surfaces)
-            authors_y = loading_y + 60
-            authors_x = (screen.get_width() - max_width) // 2
+            present_text = "present the game..."
+            authors_font = pygame.font.SysFont(None, 36)
+            studio_font = pygame.font.SysFont(None, 48)
+            present_font = pygame.font.SysFont(None, 32)
+            elapsed = self.intro_duration - self.intro_timer
 
-            # Draw semi-transparent black rectangle
-            rect_surface = pygame.Surface((max_width + 40, total_height + 20), pygame.SRCALPHA)
-            rect_surface.fill((0, 0, 0, 160))  # 160 = průhlednost (0-255)
-            screen.blit(rect_surface, (authors_x - 20, authors_y - 10))
+            # 1. Studio name fade-in (text + shadow only)
+            studio_alpha = min(255, int(255 * (elapsed / studio_fadein)))
+            studio_surface = studio_font.render("Tým 12 - summer 2025", True, (252, 186, 3))
+            studio_shadow = studio_font.render("Tým 12 - summer 2025", True, (40, 40, 40))
+            studio_x = (screen.get_width() - studio_surface.get_width()) // 2
+            studio_y = screen.get_height() // 2 - 350
 
-            # Draw each line with shadow
-            y = authors_y
-            for i, line in enumerate(authors_lines):
-                authors_surface = line_surfaces[i]
-                authors_shadow = authors_font.render(line, True, (40, 40, 40))
-                x = (screen.get_width() - authors_surface.get_width()) // 2
-                screen.blit(authors_shadow, (x + 2, y + 2))
-                screen.blit(authors_surface, (x, y))
-                y += authors_surface.get_height() + 5
+            studio_shadow.set_alpha(studio_alpha)
+            studio_surface.set_alpha(studio_alpha)
+            screen.blit(studio_shadow, (studio_x + 2, studio_y + 2))
+            screen.blit(studio_surface, (studio_x, studio_y))
+
+            # 2. Authors fade-in one by one (text + shadow only)
+            for i, author in enumerate(authors):
+                appear_time = studio_fadein + i * author_fadein
+                if elapsed > appear_time:
+                    alpha = min(255, int(255 * ((elapsed - appear_time) / fade_time)))
+                    alpha = max(0, min(alpha, 255))
+                    author_surface = authors_font.render(author, True, (252, 186, 3))
+                    author_shadow = authors_font.render(author, True, (40, 40, 40))
+                    author_x = (screen.get_width() - author_surface.get_width()) // 2
+                    author_y = studio_y + 80 + i * 50
+
+                    author_shadow.set_alpha(alpha)
+                    author_surface.set_alpha(alpha)
+                    screen.blit(author_shadow, (author_x + 2, author_y + 2))
+                    screen.blit(author_surface, (author_x, author_y))
+
+            # 3. "present the game..." fade-in after all authors (text + shadow only)
+            present_appear_time = studio_fadein + len(authors) * author_fadein
+            if elapsed > present_appear_time:
+                alpha = min(255, int(255 * ((elapsed - present_appear_time) / fade_time)))
+                alpha = max(0, min(alpha, 255))
+                present_surface = present_font.render(present_text, True, (252, 186, 3))
+                present_shadow = present_font.render(present_text, True, (40, 40, 40))
+                present_x = (screen.get_width() - present_surface.get_width()) // 2
+                present_y = studio_y + 80 + len(authors) * 50 + 30
+
+                present_shadow.set_alpha(alpha)
+                present_surface.set_alpha(alpha)
+                screen.blit(present_shadow, (present_x + 2, present_y + 2))
+                screen.blit(present_surface, (present_x, present_y))
 
         if menu:
             # Animated title (wobble effect) - show only after intro
