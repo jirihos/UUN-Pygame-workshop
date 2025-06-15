@@ -2,7 +2,7 @@ import pygame
 import math
 
 class CarSprite(pygame.sprite.Sprite):
-    def __init__(self, x, y, size=(170, 200)):
+    def __init__(self, x, y, size=(85, 100)):
         super().__init__()
 
         self.original_image = pygame.transform.scale(
