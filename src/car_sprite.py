@@ -19,7 +19,7 @@ class CarSprite(pygame.sprite.Sprite):
         # Movement parameters
         self.max_speed = 6
         self.acceleration = 0.2
-        self.brake_strength = 5.0
+        self.brake_strength = 0.3
         self.friction = 0.05
 
         # Steering
