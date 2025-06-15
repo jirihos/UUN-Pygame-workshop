@@ -2,9 +2,18 @@ import pygame
 import math
 
 class CarSprite(pygame.sprite.Sprite):
+
     """The car object."""
 
     def __init__(self, x, y, size=(85, 100)):
+        """Initialize the car sprite with position and size.
+
+        Args:
+            x (float): The x-coordinate of the car's position.
+            y (float): The y-coordinate of the car's position.
+            size (tuple): The size of the car sprite as (width, height).
+        """
+
         super().__init__()
 
         self.original_image = pygame.transform.scale(
@@ -40,6 +49,14 @@ class CarSprite(pygame.sprite.Sprite):
         self.fuel = 100
 
     def update(self, game, camera_x, camera_y, keys=None):
+        """Update the car's position, speed, and angle based on input and game state.
+        Args:
+            game (Game): The game instance to check for collisions.
+            camera_x (float): The camera's x position for rendering.
+            camera_y (float): The camera's y position for rendering.
+            keys (list, optional): List of pressed keys. If None, uses pygame's key state.
+        """
+        
         if keys is None:
             keys = pygame.key.get_pressed()
 
@@ -115,6 +132,8 @@ class CarSprite(pygame.sprite.Sprite):
 
 
     def toggle_handbrake(self):
+        """Toggle the handbrake state of the car."""
+
         if not self.handbrake_engaged:
             self.stored_momentum = abs(self.speed)
             self.speed = 0
@@ -126,4 +145,6 @@ class CarSprite(pygame.sprite.Sprite):
             self.stored_momentum = 0
 
     def is_handbraking(self):
+        """Check if the handbrake is engaged."""
+        
         return self.handbrake_engaged

@@ -7,9 +7,28 @@ from tiles import tile_dict
 from job import Job
 
 class Game:
-    """The actual game. Renders the map, HUD, and contains the main game logic."""
+    """The actual game. Renders the map, HUD, and contains the main game logic.
+    
+    Handles player input, car movement, job management, and rendering of the game scene.
+    Attributes:
+        main: Reference to the main controller (provides screen, clock, etc.)
+        sprites: Group of all game sprites.
+        car: The player's car sprite.
+        brake_pressed: Boolean indicating if the brake is pressed.
+        money: Player's current cash amount.
+        is_refueling: Boolean indicating if the player is currently refueling.
+        cash_animations: List of cash animations for floating money effects.
+        pending_job: Job that is available to be accepted by the player.
+    """
 
     def __init__(self, main):
+        """Initializes the Game object, loads map and resources, sets up the player, 
+        and prepares all game logic structures.
+        
+        Args:
+            main: Reference to the main controller (provides screen, clock, etc.)
+        """
+
         self.main = main
         self.sprites = pygame.sprite.Group()
         self.car = CarSprite(400,500)
@@ -37,6 +56,16 @@ class Game:
         self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap.png")).convert_alpha()
 
         def get_tile(x, y):
+            """Returns a tile image from the sprite sheet based on its coordinates.
+            
+            Args:
+                x: The x-coordinate of the tile in the sprite sheet.
+                y: The y-coordinate of the tile in the sprite sheet.
+            
+            Returns:
+                A pygame.Surface object representing the tile.
+            """
+
             px = self.TILE_MARGIN + x * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             py = self.TILE_MARGIN + y * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
             rect = pygame.Rect(px, py, self.SPRITE_TILE_SIZE, self.SPRITE_TILE_SIZE)
@@ -53,6 +82,9 @@ class Game:
         }
 
         def load_tile_map(path):
+            """Loads the tile map from a text file.
+            """
+
             tile_map = []
             with open(path, "r") as f:
                 for line in f:
@@ -63,7 +95,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [0, 22, 814, 850, 851, 852, 779, 674, 709, 782]
+        self.WALKABLE_TILES = [0, 22, 814, 850, 851, 852, 779, 674, 709, 782] # List of ID's of walkable tiles
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -96,6 +128,8 @@ class Game:
         self.show_fps = False  # FPS display toggle
 
     def new_job(self):
+        """Creates a new job by randomly selecting two pickup locations."""
+
         # If there are not enough pickup locations, do not create a job
         if len(self.pickup_tile_locations) < 2:
             self.current_job = None
@@ -109,6 +143,7 @@ class Game:
 
     def _create_minimap(self):
         """Creates the minimap surface from the tile_map."""
+
         map_w = len(self.tile_map[0])
         map_h = len(self.tile_map)
         scale = self.minimap_scale
@@ -122,7 +157,16 @@ class Game:
         return surf
 
     def is_walkable(self, x, y): 
-        # Returns True if the tile at (x, y) is walkable
+        """Determines if a given world coordinate (x, y) is on a walkable tile.
+
+        Args:
+            x (float): X coordinate in world space.
+            y (float): Y coordinate in world space.
+
+        Returns:
+            bool: True if the tile is walkable, otherwise False.
+        """
+
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
         if 0 <= tile_y < len(self.tile_map) and 0 <= tile_x < len(self.tile_map[0]):
@@ -131,13 +175,23 @@ class Game:
         return False
 
     def is_on_pump_tile(self):
-        # Returns True if the car is currently on a pump tile
+        """Checks if the car is currently located on a pump tile.
+
+        Returns:
+            bool: True if car is on a pump tile, False otherwise.
+        """
+
         car_tile_x = int(self.car.pos.x) // self.tile_size
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.pump_tile_locations
 
     def get_nearest_pump_tile(self):
-        # Finds the nearest pump tile to the car
+        """Finds the nearest fuel pump to the car's current position.
+
+        Returns:
+            pygame.Vector2: World coordinates of the nearest pump tile.
+        """
+        
         car_pos = self.car.pos
         min_dist = float('inf')
         nearest = None
@@ -150,7 +204,12 @@ class Game:
         return nearest
 
     def loop(self, dt):
-        """Performs the Event, Update, Render cycle."""
+        """Runs the main game loop logic for a single frame.
+        Handles events, updates game state, renders the game scene and HUD.
+
+        Args:
+            dt (float): Time delta since last frame (for smooth updates).
+        """
 
         screen = self.main.screen
 
@@ -400,7 +459,13 @@ class Game:
         pygame.display.flip()
 
     def draw_dashboard(self):
-        # Draws the dashboard with speed, fuel, cash, and indicators
+        """Draws the lower-left dashboard area of the screen, including:
+        - Speed display
+        - Fuel level bar
+        - Handbrake/brake indicators
+        - Cash counter and floating cash animations
+        """
+
         dash_rect = pygame.Rect(20, self.main.screen.get_height() - 140, 240, 120)
         dash_bg_rect = dash_rect.inflate(24, 32)
 
@@ -525,6 +590,7 @@ class Game:
 
     def draw_minimap(self):
         """Displays the minimap in the bottom right corner and highlights the car position and current target only."""
+        
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
@@ -559,17 +625,44 @@ class Game:
         self.main.screen.blit(minimap, (minimap_center_x, minimap_center_y))
 
     def tile_to_world(self, tile_pos):
-        # Converts tile coordinates to world (pixel) coordinates (center of tile)
+        """Converts tile coordinates (x, y) into pixel-based world coordinates.
+
+        Args:
+            tile_pos (tuple[int, int]): The (x, y) tile position.
+
+        Returns:
+            pygame.Vector2: World coordinates at the tile center.
+        """
+
         x, y = tile_pos
         return pygame.Vector2(x * self.tile_size + self.tile_size // 2, y * self.tile_size + self.tile_size // 2)
 
     def is_at_tile(self, tile_pos, radius=50):
-        # Returns True if the car is within a certain radius of the given tile
+        """Checks if the car is within a certain radius of the center of a specific tile.
+
+        Args:
+            tile_pos (tuple[int, int]): Tile coordinates (x, y).
+            radius (float): Maximum distance to consider "at tile".
+
+        Returns:
+            bool: True if the car is within the radius of the tile center.
+        """
+
         world_pos = self.tile_to_world(tile_pos)
         return self.car.pos.distance_to(world_pos) <= radius
 
     def _draw_text(self, text, x, y, color=(255, 255, 255), size=36):
-        # Draws text using Kenney_Future font at the given position
+        """Utility function to render and draw text on the screen at a given position.
+
+        Args:
+            text (str): The text to render.
+            x (int): X position.
+            y (int): Y position.
+            color (tuple[int, int, int], optional): RGB color. Defaults to white.
+            size (int, optional): Font size. Defaults to 36.
+        """
+
+        # Use Kenney_Future font for all text
         font = pygame.font.Font(self.font_path, size)
         surface = font.render(text, True, color)
         self.main.screen.blit(surface, (x, y))

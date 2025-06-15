@@ -4,9 +4,14 @@ import math
 from menubutton import MenuButton
 
 class MainMenu():
-    """Into and main menu screen."""
+    """Into and main menu screen.
+    Displays the game title, animated intro, and buttons to start the game or exit.
+    """
 
     def __init__(self, main, skip_intro=False):
+        """Initializes the main menu.
+        """
+
         self.intro_duration = 6000
         self.intro_timer = 0 if skip_intro else self.intro_duration  # Přeskoč intro pokud skip_intro=True
         self.main = main
@@ -49,7 +54,10 @@ class MainMenu():
         ))
 
     def loop(self, dt):
-        """Performs the Event, Update, Render cycle."""
+        """Performs the Event, Update, Render cycle.
+        Args:
+            dt (int): Delta time in milliseconds since the last frame.
+        """
 
         screen = self.main.screen
 
