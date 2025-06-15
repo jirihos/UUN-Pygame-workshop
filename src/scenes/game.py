@@ -215,7 +215,7 @@ class Game:
                 if self.car.fuel < self.car.max_fuel:
                     self.car.fuel = min(self.car.fuel + 0.5, self.car.max_fuel)
 
-        screen.fill((50, 50, 50))
+        screen.fill((64, 142, 93))
 
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
