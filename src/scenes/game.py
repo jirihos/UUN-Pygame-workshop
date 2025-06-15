@@ -174,6 +174,8 @@ class Game:
 
         self.passenger_manager = PassengerManager(self.passenger_sprite_sheet)
 
+        self.show_help = False
+
     def new_job(self):
         """Creates a new job by randomly selecting two pickup locations."""
 
@@ -312,12 +314,12 @@ class Game:
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps
                 elif event.key == pygame.K_RETURN:
-                    # Only toggle accepting_jobs on ENTER
                     self.accepting_jobs = not self.accepting_jobs
                     print(f"[JOB] Accepting jobs: {self.accepting_jobs}")
-                    # If switched ON and no job, generate new job
                     if self.accepting_jobs and not self.current_job and not self.pending_job:
                         self.new_job()
+                elif event.key == pygame.K_F1:
+                    self.show_help = not self.show_help
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -762,6 +764,20 @@ class Game:
                 point = point - pygame.Vector2(camera_x, camera_y)
                 pygame.draw.circle(screen, (240, 0, 0), point, 5)
 
+        # ===  Draw help overlay ===
+        if self.show_help:
+            self.draw_help_overlay()
+        else:
+            #  Draw the help text in the top-right corner
+            font = pygame.font.Font(self.font_path, 28)
+            text = "Press F1 for help"
+            surface = font.render(text, True, (255, 255, 255))
+            shadow = font.render(text, True, (40, 40, 40))
+            x = self.main.WIDTH - surface.get_width() - 40
+            y = 30
+            self.main.screen.blit(shadow, (x + 2, y + 2))
+            self.main.screen.blit(surface, (x, y))
+
         pygame.display.flip()
 
     def save_high_score(self):
@@ -1050,3 +1066,72 @@ class Game:
         font = pygame.font.Font(self.font_path, size)
         surface = font.render(text, True, color)
         self.main.screen.blit(surface, (x, y))
+
+    def draw_help_overlay(self):
+        """Draws a semi-transparent help overlay over the entire screen with colored keys and headings."""
+        overlay = pygame.Surface((self.main.WIDTH, self.main.HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))  # Semi-transparent black
+
+        # Define colors
+        yellow = (252, 186, 3)
+        blue = (60, 140, 255)
+        white = (255, 255, 255)
+        shadow_color = (40, 40, 40)
+
+        # Define help text as tuples: (text, color) or (list of (part, color))
+        help_lines = [
+            [("GAME HELP", yellow)],
+            [],
+            [("Controls:", yellow)],
+            [("  ", white), ("W", blue), ("/", white), ("S", blue), (" - Accelerate/Reverse", white)],
+            [("  ", white), ("A", blue), ("/", white), ("D", blue), (" - Steer left/right", white)],
+            [("  ", white), ("X", blue), ("   - Brake", white)],
+            [("  ", white), ("SPACE", blue), (" - Handbrake (toggle)", white)],
+            [("  ", white), ("F", blue), ("   - Refuel/Eat/Upgrade (when on correct tile and stopped)", white)],
+            [("  ", white), ("L", blue), ("   - Toggle FPS display", white)],
+            [("  ", white), ("ENTER", blue), (" - Toggle job auto-accept", white)],
+            [("  ", white), ("ESC", blue), (" - Return to menu", white)],
+            [],
+            [("Jobs:", yellow)],
+            [("  - Pick up passengers at yellow markers.", white)],
+            [("  - Deliver them to the destination tile.", white)],
+            [("  - Stop and use handbrake to pick up/drop off.", white)],
+            [],
+            [("Fuel:", yellow)],
+            [("  - Refuel at gas stations (pump icon).", white)],
+            [("  - Hold ", white), ("F", blue), (" to refuel (costs money).", white)],
+            [],
+            [("Hunger:", yellow)],
+            [("  - Eat at food tiles (apple icon) when hungry.", white)],
+            [("  - Press ", white), ("F", blue), (" to eat (costs money).", white)],
+            [],
+            [("Tuning:", yellow)],
+            [("  - Upgrade car speed at service tiles (wrench icon).", white)],
+            [("  - Press ", white), ("F", blue), (" to upgrade (costs money, max speed limited).", white)],
+            [],
+            [("Press F1 to close this help.", white)]
+        ]
+
+        font = pygame.font.Font(self.font_path, 24)
+        y = 80
+        for line in help_lines:
+            if not line:
+                y += font.get_height() // 2
+                continue
+            # Calculate total width for centering
+            total_width = sum(font.render(part, True, color).get_width() for part, color in line)
+            x = self.main.WIDTH // 2 - total_width // 2
+            # Draw shadow
+            shadow_x = x + 2
+            for part, color in line:
+                surf = font.render(part, True, shadow_color)
+                overlay.blit(surf, (shadow_x, y + 2))
+                shadow_x += surf.get_width()
+            # Draw colored text
+            for part, color in line:
+                surf = font.render(part, True, color)
+                overlay.blit(surf, (x, y))
+                x += surf.get_width()
+            y += font.get_height() + 6
+
+        self.main.screen.blit(overlay, (0, 0))
