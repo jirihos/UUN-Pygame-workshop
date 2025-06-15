@@ -93,6 +93,10 @@ class Game:
         # Load PNG backgrounds for minimap and dashboard
         self.dashboard_bg_img = pygame.image.load(os.path.join(base_path, "tiles/game/game_board_background.png")).convert_alpha()
 
+        # Load PNG icon for pump (for minimap)
+        self.pump_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/gas-pump-alt.png")).convert_alpha()
+        self.pump_icon_img = pygame.transform.scale(self.pump_icon_img, (18, 18))  # Adjust size as needed
+
         self.show_fps = False  # FPS display toggle
 
     def new_job(self):
@@ -276,13 +280,12 @@ class Game:
 
         # === ARROW TO CURRENT JOB TARGET ===
         if self.current_job and self.job_state:
-            # Set arrow color to match minimap dot color
+            # Set arrow color to yellow (same as PLAY in menu)
+            arrow_color = (252, 186, 3)
             if self.job_state == "pickup":
                 target_tile = self.current_job.pickup_tile_loc
-                arrow_color = (0, 120, 255)  # Blue for pickup
             else:
                 target_tile = self.current_job.delivery_tile_loc
-                arrow_color = (0, 200, 0)    # Green for dropoff
 
             target_pos = self.tile_to_world(target_tile)
             car_screen_x = self.car.pos.x - camera_x
@@ -524,21 +527,23 @@ class Game:
                 self.cash_animations.remove(anim)
 
     def draw_minimap(self):
-        """Displays the minimap in the bottom right corner and highlights the car position and current target only."""
+        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump icons."""
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
         car_y = int(self.car.pos.y / self.tile_size * scale)
         pygame.draw.circle(minimap, (255, 0, 0), (car_x, car_y), max(3, int(3 * scale)))
 
+        # Draw pump icons on minimap
+        for tx, ty in self.pump_tile_locations:
+            icon_x = int(tx * scale - self.pump_icon_img.get_width() // 2)
+            icon_y = int(ty * scale - self.pump_icon_img.get_height() // 2)
+            minimap.blit(self.pump_icon_img, (icon_x, icon_y))
+
         # Show only the current target (pickup or dropoff)
         if self.current_job is not None and self.job_state:
-            if self.job_state == "pickup":
-                tx, ty = self.current_job.pickup_tile_loc
-                color = (0, 120, 255)  # Blue for pickup
-            else:
-                tx, ty = self.current_job.delivery_tile_loc
-                color = (0, 200, 0)    # Green for dropoff
+            tx, ty = self.current_job.pickup_tile_loc if self.job_state == "pickup" else self.current_job.delivery_tile_loc
+            color = (252, 186, 3)  # Yellow for both pickup and dropoff
             target_x = int(tx * scale)
             target_y = int(ty * scale)
             pygame.draw.circle(minimap, color, (target_x, target_y), max(4, int(4 * scale)))
