@@ -8,6 +8,8 @@ class Game:
     def __init__(self, main):
         self.main = main
         self.sprites = pygame.sprite.Group()
+        self.car = CarSprite(400,500)     #(self.main.screen.get_width() // 2, self.main.screen.get_height() // 2)
+        self.sprites.add(self.car)
         self.font = pygame.font.SysFont(None, 36)
         self.brake_pressed = False
 
@@ -17,9 +19,9 @@ class Game:
         self.TILE_SPACING = 1
         self.TILE_MARGIN = 0
 
-        self.tile_size = 64
+        self.tile_size = 40
 
-        self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap_packed.png")).convert_alpha()
+        self.sprite_sheet = pygame.image.load(os.path.join(base_path, "tiles/game/tilemap.png")).convert_alpha()
 
         def get_tile(x, y):
             px = self.TILE_MARGIN + x * (self.SPRITE_TILE_SIZE + self.TILE_SPACING)
@@ -48,7 +50,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [1, 2, 3, 4, 5, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+        self.WALKABLE_TILES = [429, 850]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -66,6 +68,7 @@ class Game:
                 break
 
     def is_walkable(self, x, y):
+        return True
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
         if 0 <= tile_y < len(self.tile_map) and 0 <= tile_x < len(self.tile_map[0]):
