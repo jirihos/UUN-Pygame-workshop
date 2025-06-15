@@ -184,7 +184,7 @@ class Game:
                 if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
                     base_rate = 0.5  
-                    distance = self.current_job.distance(self.tile_size)
+                    distance = self.current_job.distance(self.tile_size) / 100
                     earned = int(base_rate * distance)
                     self.money += earned
                     self.cash_animations.append({
