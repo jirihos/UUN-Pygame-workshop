@@ -1068,84 +1068,70 @@ class Game:
         self.main.screen.blit(surface, (x, y))
 
     def draw_help_overlay(self):
-        """Draws a semi-transparent help overlay over the entire screen with colored keys."""
+        """Draws a semi-transparent help overlay over the entire screen with colored keys and headings."""
         overlay = pygame.Surface((self.main.WIDTH, self.main.HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))  # Semi-transparent black
 
+        # Define colors
+        yellow = (252, 186, 3)
+        blue = (60, 140, 255)
+        white = (255, 255, 255)
+        shadow_color = (40, 40, 40)
+
+        # Define help text as tuples: (text, color) or (list of (part, color))
         help_lines = [
-            ("GAME HELP",),
-            ();
-            ("Controls:",),
-            ("  ", ("W",), "/", ("S",), " - Accelerate/Reverse"),
-            ("  ", ("A",), "/", ("D",), " - Steer left/right"),
-            ("  ", ("X",), "   - Brake"),
-            ("  ", ("SPACE",), " - Handbrake (toggle)"),
-            ("  ", ("F",), "   - Refuel/Eat/Upgrade (when on correct tile and stopped)"),
-            ("  ", ("L",), "   - Toggle FPS display"),
-            ("  ", ("ENTER",), " - Toggle job auto-accept"),
-            ("  ", ("ESC",), " - Return to menu"),
-            ();
-            ("Jobs:",),
-            "  - Pick up passengers at yellow markers.",
-            "  - Deliver them to the destination tile.",
-            "  - Stop and use handbrake to pick up/drop off.",
-            ();
-            ("Fuel:",),
-            "  - Refuel at gas stations (pump icon).",
-            "  - Hold ", ("F",), " to refuel (costs money).",
-            ();
-            ("Hunger:",),
-            "  - Eat at food tiles (apple icon) when hungry.",
-            "  - Press ", ("F",), " to eat (costs money).",
-            ();
-            ("Tuning:",),
-            "  - Upgrade car speed at service tiles (wrench icon).",
-            "  - Press ", ("F",), " to upgrade (costs money, max speed limited).",
-            ();
-            "Press F1 to close this help."
+            [("GAME HELP", yellow)],
+            [],
+            [("Controls:", yellow)],
+            [("  ", white), ("W", blue), ("/", white), ("S", blue), (" - Accelerate/Reverse", white)],
+            [("  ", white), ("A", blue), ("/", white), ("D", blue), (" - Steer left/right", white)],
+            [("  ", white), ("X", blue), ("   - Brake", white)],
+            [("  ", white), ("SPACE", blue), (" - Handbrake (toggle)", white)],
+            [("  ", white), ("F", blue), ("   - Refuel/Eat/Upgrade (when on correct tile and stopped)", white)],
+            [("  ", white), ("L", blue), ("   - Toggle FPS display", white)],
+            [("  ", white), ("ENTER", blue), (" - Toggle job auto-accept", white)],
+            [("  ", white), ("ESC", blue), (" - Return to menu", white)],
+            [],
+            [("Jobs:", yellow)],
+            [("  - Pick up passengers at yellow markers.", white)],
+            [("  - Deliver them to the destination tile.", white)],
+            [("  - Stop and use handbrake to pick up/drop off.", white)],
+            [],
+            [("Fuel:", yellow)],
+            [("  - Refuel at gas stations (pump icon).", white)],
+            [("  - Hold ", white), ("F", blue), (" to refuel (costs money).", white)],
+            [],
+            [("Hunger:", yellow)],
+            [("  - Eat at food tiles (apple icon) when hungry.", white)],
+            [("  - Press ", white), ("F", blue), (" to eat (costs money).", white)],
+            [],
+            [("Tuning:", yellow)],
+            [("  - Upgrade car speed at service tiles (wrench icon).", white)],
+            [("  - Press ", white), ("F", blue), (" to upgrade (costs money, max speed limited).", white)],
+            [],
+            [("Press F1 to close this help.", white)]
         ]
+
         font = pygame.font.Font(self.font_path, 24)
-        key_color = (252, 186, 3)
-        text_color = (255, 255, 255)
-        title_color = key_color
         y = 80
         for line in help_lines:
-            if isinstance(line, tuple):
-                # Multi-part line (some parts are keys)
-                x = self.main.WIDTH // 2
-                parts = []
-                total_width = 0
-                rendered = []
-                for part in line:
-                    if isinstance(part, tuple):
-                        # Key
-                        surf = font.render(part[0], True, key_color)
-                    else:
-                        surf = font.render(str(part), True, title_color if part == "GAME HELP" else text_color)
-                    rendered.append(surf)
-                    total_width += surf.get_width()
-                x -= total_width // 2
-                # Draw shadow
-                shadow_x = x + 2
-                for surf in rendered:
-                    shadow = font.render(surf.get_text(), True, (40, 40, 40))
-                    overlay.blit(shadow, (shadow_x, y + 2))
-                    shadow_x += surf.get_width()
-                # Draw text
-                for surf in rendered:
-                    overlay.blit(surf, (x, y))
-                    x += surf.get_width()
-                y += font.get_height() + 6
-            elif isinstance(line, str):
-                # Simple string
-                surf = font.render(line, True, text_color)
-                shadow = font.render(line, True, (40, 40, 40))
-                x = self.main.WIDTH // 2 - surf.get_width() // 2
-                overlay.blit(shadow, (x + 2, y + 2))
-                overlay.blit(surf, (x, y))
-                y += surf.get_height() + 6
-            else:
-                # Empty line
+            if not line:
                 y += font.get_height() // 2
+                continue
+            # Calculate total width for centering
+            total_width = sum(font.render(part, True, color).get_width() for part, color in line)
+            x = self.main.WIDTH // 2 - total_width // 2
+            # Draw shadow
+            shadow_x = x + 2
+            for part, color in line:
+                surf = font.render(part, True, shadow_color)
+                overlay.blit(surf, (shadow_x, y + 2))
+                shadow_x += surf.get_width()
+            # Draw colored text
+            for part, color in line:
+                surf = font.render(part, True, color)
+                overlay.blit(surf, (x, y))
+                x += surf.get_width()
+            y += font.get_height() + 6
 
         self.main.screen.blit(overlay, (0, 0))
