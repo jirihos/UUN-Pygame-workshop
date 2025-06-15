@@ -213,30 +213,27 @@ class Game:
         self.main.screen.blit(fuel_shadow, (fuel_x + 2, fuel_y + 2))
         self.main.screen.blit(fuel_surface, (fuel_x, fuel_y))
 
-        # Fuel gauge centered under the fuel label
-        blocks = 5
-        block_width = 20
-        block_height = 30
-        spacing = 5
-        gauge_width = blocks * block_width + (blocks - 1) * spacing
-        gauge_x = center_x - gauge_width // 2
-        gauge_y = fuel_y + fuel_surface.get_height() + 8
+        # === Fuel progress bar ===
+        bar_width = 140
+        bar_height = 24
+        bar_x = center_x - bar_width // 2
+        bar_y = fuel_y + fuel_surface.get_height() + 8
 
         fuel_level = max(0, min(self.car.fuel, 100))
-        for i in range(blocks):
-            threshold = (i + 1) * (100 / blocks)
-            color = (100, 100, 100)
-            if fuel_level >= threshold:
-                if i >= 3:
-                    color = (0, 200, 0)
-                elif i == 2:
-                    color = (255, 200, 0)
-                else:
-                    color = (255, 0, 0)
+        fill_width = int(bar_width * (fuel_level / 100))
 
-            rect = pygame.Rect(gauge_x + i * (block_width + spacing), gauge_y, block_width, block_height)
-            pygame.draw.rect(self.main.screen, color, rect)
-            pygame.draw.rect(self.main.screen, (255, 255, 255), rect, 2)
+        # Bar background
+        pygame.draw.rect(self.main.screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height), border_radius=8)
+        # Bar fill (color changes with level)
+        if fuel_level > 60:
+            fill_color = (0, 200, 0)
+        elif fuel_level > 30:
+            fill_color = (255, 200, 0)
+        else:
+            fill_color = (255, 0, 0)
+        pygame.draw.rect(self.main.screen, fill_color, (bar_x, bar_y, fill_width, bar_height), border_radius=8)
+        # Bar border
+        pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
 
         if self.brake_pressed:
             pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
