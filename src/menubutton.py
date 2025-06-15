@@ -6,7 +6,8 @@ class MenuButton(pygame.sprite.Sprite):
 
     def __init__(
         self, x, y, callback, text="Play", play_color=(252, 186, 3),
-        icon_idle=None, icon_hover=None, icon_click=None, font_size=48
+        icon_idle=None, icon_hover=None, icon_click=None, font_size=48,
+        hover_offset=None, icon_size=64
     ):
         super().__init__()
         base_path = os.path.dirname(__file__)  # path to src
@@ -19,9 +20,16 @@ class MenuButton(pygame.sprite.Sprite):
         if icon_click is None:
             icon_click = os.path.join(base_path, "tiles/menu/arrow_decorative_e_grey.png")
 
-        self.image_idle = pygame.image.load(icon_idle).convert_alpha()
-        self.image_hover = pygame.image.load(icon_hover).convert_alpha()
-        self.image_click = pygame.image.load(icon_click).convert_alpha()
+        # Load and scale the icons
+        self.image_idle = pygame.transform.smoothscale(
+            pygame.image.load(icon_idle).convert_alpha(), (icon_size, icon_size)
+        )
+        self.image_hover = pygame.transform.smoothscale(
+            pygame.image.load(icon_hover).convert_alpha(), (icon_size, icon_size)
+        )
+        self.image_click = pygame.transform.smoothscale(
+            pygame.image.load(icon_click).convert_alpha(), (icon_size, icon_size)
+        )
 
         self.image = self.image_idle
         self.rect = self.image.get_rect(center=(x, y))
@@ -35,6 +43,8 @@ class MenuButton(pygame.sprite.Sprite):
         self.text = text
         self.text_color = play_color
         self.text_surface = self.font.render(self.text, True, self.text_color)
+
+        self.hover_offset = hover_offset if hover_offset is not None else 120
 
     def update(self):
         """Update the button state based on mouse position and clicks.
@@ -68,7 +78,7 @@ class MenuButton(pygame.sprite.Sprite):
 
         """
 
-        offset = 120 if self.hovered else 0
+        offset = self.hover_offset if self.hovered else 0  # změna zde
         arrow_pos = (self.rect.x + offset, self.rect.y)
         if self.hovered:
             # Draw text with shadow to the left of the arrow

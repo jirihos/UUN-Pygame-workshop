@@ -30,28 +30,69 @@ class MainMenu():
 
         # Buttons
         self.buttons = pygame.sprite.Group()
-        self.buttons.add(MenuButton(
-            self.main.screen.get_width() // 2,
-            self.main.screen.get_height() // 2,
+        play_btn_x = self.main.screen.get_width() // 2
+        play_btn_y = self.main.screen.get_height() // 2 - 180
+
+        # --- PLAY button ---
+        play_button = MenuButton(
+            play_btn_x,
+            play_btn_y,
             lambda: self.main.start_game(),
             text="Play",
             play_color=self.title_color
-        ))
-        # Add Exit button
-        # Position Exit button at the bottom right corner
-        icon_size = 36
-        margin = 12
-        self.buttons.add(MenuButton(
-            margin + icon_size // 2,
-            self.main.screen.get_height() - margin - icon_size // 2,
+        )
+        self.buttons.add(play_button)
+
+        # --- Reset High Score Button (directly under PLAY, same style/size) ---
+        def reset_high_score():
+            score_file = "highscore.txt"
+            try:
+                with open(score_file, "w") as f:
+                    f.write("0")
+            except Exception as e:
+                print(f"Error resetting high score: {e}")
+            self.high_score = 0
+
+        blue_icon = os.path.join(base_path, "tiles/menu/button_round_flat.png")
+        if not os.path.exists(blue_icon):
+            blue_icon = None  # fallback to default
+
+        reset_btn_x = play_btn_x
+        reset_btn_y = play_btn_y + 90
+        reset_button = MenuButton(
+            reset_btn_x,
+            reset_btn_y,
+            reset_high_score,
+            text="Reset Score",
+            play_color=(60, 140, 255),
+            icon_idle=blue_icon,
+            icon_hover=blue_icon,
+            icon_click=blue_icon,
+            font_size=48,
+            hover_offset=220,
+            icon_size=64
+        )
+        self.buttons.add(reset_button)
+
+        # --- EXIT button (directly under RESET SCORE, same style/size) ---
+        exit_btn_x = play_btn_x
+        exit_btn_y = reset_btn_y + 90
+        exit_icon_red = os.path.join(base_path, "tiles/menu/icon_cross_red.png")
+        exit_icon_grey = os.path.join(base_path, "tiles/menu/icon_cross_grey.png")
+        exit_button = MenuButton(
+            exit_btn_x,
+            exit_btn_y,
             lambda: self.main.quit(),
             text="Exit",
             play_color=(220, 40, 40),
-            icon_idle=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
-            icon_hover=os.path.join(base_path, "tiles/menu/icon_cross_red.png"),
-            icon_click=os.path.join(base_path, "tiles/menu/icon_cross_grey.png"),
-            font_size=38
-        ))
+            icon_idle=exit_icon_red,
+            icon_hover=exit_icon_red,
+            icon_click=exit_icon_grey,
+            font_size=48,
+            hover_offset=100,
+            icon_size=58
+        )
+        self.buttons.add(exit_button)
 
         self.high_score = self.load_high_score()
 
@@ -174,6 +215,9 @@ class MainMenu():
             high_score_y = title_y + title_surface.get_height() + 20
             screen.blit(high_score_shadow, (high_score_x + 2, high_score_y + 2))
             screen.blit(high_score_surface, (high_score_x, high_score_y))
+
+            # --- Update high score in case it was reset ---
+            self.high_score = self.load_high_score()
 
             for button in self.buttons:
                 button.draw(screen)
