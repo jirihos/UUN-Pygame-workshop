@@ -426,6 +426,7 @@ class Game:
 
         # === Out of hunger (starvation) ===
         if self.hunger <= 0:
+            self.save_high_score()
             self.car.speed = 0  # Stop the car
             # Show "STARVED TO DEATH" message in the center of the screen
             message = "STARVED TO DEATH"
@@ -520,6 +521,7 @@ class Game:
 
         # OUT OF FUEL MESSAGE
         if self.car.fuel <= 0:
+            self.save_high_score()
             # Show "OUT OF FUEL" message in the center of the screen
             message = "OUT OF FUEL"
             font = pygame.font.Font(self.font_path, 64)
@@ -661,6 +663,22 @@ class Game:
         self.passenger_group.draw(screen)  # Draw the passenger
 
         pygame.display.flip()
+
+    def save_high_score(self):
+        score_file = "highscore.txt"
+        try:
+            # When file exists, read the old score
+            if os.path.exists(score_file):
+                with open(score_file, "r") as f:
+                    old_score = int(f.read().strip())
+            else:
+                old_score = 0
+            # Save only if the new score is higher
+            if self.customers_served > old_score:
+                with open(score_file, "w") as f:
+                    f.write(str(self.customers_served))
+        except Exception as e:
+            print(f"Error saving score: {e}")
 
     def draw_dashboard(self):
         """Draws the lower-left dashboard area of the screen, including:

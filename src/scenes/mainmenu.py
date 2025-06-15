@@ -53,6 +53,18 @@ class MainMenu():
             font_size=38
         ))
 
+        self.high_score = self.load_high_score()
+
+    def load_high_score(self):
+        score_file = "highscore.txt"
+        try:
+            if os.path.exists(score_file):
+                with open(score_file, "r") as f:
+                    return int(f.read().strip())
+        except Exception as e:
+            print(f"Error loading high score: {e}")
+        return 0
+
     def loop(self, dt):
         """Performs the Event, Update, Render cycle.
         Args:
@@ -152,6 +164,16 @@ class MainMenu():
             title_y = 40 + offset_y
             screen.blit(shadow_surface, (title_x + 2, title_y + 2))
             screen.blit(title_surface, (title_x, title_y))
+
+            # Show high score below the title
+            high_score_font = pygame.font.SysFont(None, 48)
+            high_score_text = f"High Score: {self.high_score}"
+            high_score_surface = high_score_font.render(high_score_text, True, (255, 255, 255))
+            high_score_shadow = high_score_font.render(high_score_text, True, (40, 40, 40))
+            high_score_x = (screen.get_width() - high_score_surface.get_width()) // 2
+            high_score_y = title_y + title_surface.get_height() + 20
+            screen.blit(high_score_shadow, (high_score_x + 2, high_score_y + 2))
+            screen.blit(high_score_surface, (high_score_x, high_score_y))
 
             for button in self.buttons:
                 button.draw(screen)
