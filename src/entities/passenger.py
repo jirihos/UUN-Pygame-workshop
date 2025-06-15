@@ -1,7 +1,15 @@
 import pygame
 
 class Passenger(pygame.sprite.Sprite):
+    """Represents a passenger sprite with animations."""
+
     def __init__(self, x, y, sprite_sheet):
+        """Initializes the Passenger sprite with a position and a sprite sheet.
+        :param x: The x-coordinate where the passenger should appear.
+        :param y: The y-coordinate where the passenger should appear.
+        :param sprite_sheet: The sprite sheet containing passenger animations.
+        """
+
         super().__init__()
         self.sprite_sheet = sprite_sheet  # <- make sure this is passed and stored
         self.sprite_sheet = self.sprite_sheet.subsurface(pygame.Rect(16, 16, 96, 96))  # Ensure the sprite sheet is loaded correctly
@@ -16,6 +24,8 @@ class Passenger(pygame.sprite.Sprite):
         self.animation_speed = 150  # milliseconds
 
     def load_frames(self):
+        """Loads the frames for the passenger sprite from the sprite sheet."""
+
         sprite_width, sprite_height = 16, 16
         for i in range(3):  # Walking down
             frame = self.sprite_sheet.subsurface(pygame.Rect(0, i * sprite_height, sprite_width, sprite_height))
@@ -24,6 +34,10 @@ class Passenger(pygame.sprite.Sprite):
             self.frames.append(frame)
 
     def update(self, dt):
+        """Updates the passenger sprite's animation based on the time delta.
+        :param dt: The time delta since the last update.
+        """
+        
         self.animation_timer += dt
         if self.animation_timer >= self.animation_speed:
             self.animation_timer = 0
