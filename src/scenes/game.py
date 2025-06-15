@@ -53,7 +53,7 @@ class Game:
         self.job_counter = 0
         self.timed_job_interval = 3
         self.is_timed_job = False
-        self.timed_job_duration = 60  # seconds
+        self.timed_job_duration = 100_000
         self.timed_job_remaining = 0
         self.timed_job_active = False
         self.timed_job_timer = None
@@ -202,10 +202,10 @@ class Game:
             self.job_state = "pickup"
             self.pending_job = None
 
-            # Start timer if job is timed
-            if self.current_job.is_timed:
-                self.timed_job_timer = self.current_job.time_limit
-                print(f"[TIMER] Started countdown: {self.timed_job_timer}s")
+        # Start timer if job is timed
+        if self.current_job.is_timed:
+            self.timed_job_timer = self.current_job.time_limit
+            print(f"[TIMER] Started countdown: {self.timed_job_timer}s")
 
 
     def _create_minimap(self):
@@ -750,9 +750,8 @@ class Game:
         
         # === Draw Timer ===
         if self.current_job and self.current_job.is_timed and self.timed_job_timer is not None:
-            timer_text = f"{int(self.timed_job_timer)}s"
-            timer_surface = self.font_big.render(timer_text, True, (255, 0, 0))
-            timer_rect = timer_surface.get_rect(center=(self.main.WIDTH // 2, 40))
+            timer_surface = self.font_big.render(f"{(self.timed_job_timer/1000):.1f}s", True, (240, 0, 0))
+            timer_rect = timer_surface.get_rect(center=(self.main.WIDTH // 2, 60))
             screen.blit(timer_surface, timer_rect)
 
         # Render car hitbox for debugging

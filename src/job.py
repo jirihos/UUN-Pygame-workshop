@@ -16,6 +16,7 @@ class Job:
         self.pickup_tile_loc = pickup_tile_loc
         self.delivery_tile_loc = delivery_tile_loc
         self.is_timed = is_timed
+        self.time_limit = time_limit
         self.time_remaining = time_limit if is_timed else None
         self.completed_in_time = True if is_timed else None 
 
