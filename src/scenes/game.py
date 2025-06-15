@@ -39,6 +39,10 @@ class Game:
         self.cash_animations = []
         self.pending_job = None
         self.customers_served = 0  # Track number of delivered customers (score)
+        self.tank_session = None  # Track refueling session
+        self.hunger = 100
+        self.max_hunger = 100
+        self.is_eating = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -125,6 +129,14 @@ class Game:
         # Load PNG backgrounds for minimap and dashboard
         self.dashboard_bg_img = pygame.image.load(os.path.join(base_path, "tiles/game/game_board_background.png")).convert_alpha()
 
+        # Load PNG icon for pump (for minimap)
+        self.pump_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/gas-pump-alt.png")).convert_alpha()
+        self.pump_icon_img = pygame.transform.scale(self.pump_icon_img, (18, 18))  # Adjust size as needed
+
+        # Load PNG icon for food (for minimap)
+        self.food_icon_img = pygame.image.load(os.path.join(base_path, "tiles/game/apple-whole.png")).convert_alpha()
+        self.food_icon_img = pygame.transform.scale(self.food_icon_img, (18, 18))  # Adjust size as needed
+
         self.show_fps = False  # FPS display toggle
 
     def new_job(self):
@@ -184,6 +196,12 @@ class Game:
         car_tile_x = int(self.car.pos.x) // self.tile_size
         car_tile_y = int(self.car.pos.y) // self.tile_size
         return (car_tile_x, car_tile_y) in self.pump_tile_locations
+
+    def is_on_food_tile(self):
+        # Returns True if the car is currently on a food tile
+        car_tile_x = int(self.car.pos.x) // self.tile_size
+        car_tile_y = int(self.car.pos.y) // self.tile_size
+        return (car_tile_x, car_tile_y) in self.food_tile_locations
 
     def get_nearest_pump_tile(self):
         """Finds the nearest fuel pump to the car's current position.
@@ -279,25 +297,125 @@ class Game:
 
         # Refueling logic (now only allowed when no passenger is in the car)
         self.is_refueling = False
-        FUEL_PRICE = 2  # price per unit of fuel
-        can_refuel = not (self.current_job and self.job_state == "dropoff")  # Only allow refuel if not in dropoff phase (no passenger)
+        FUEL_PER_DOLLAR = 2.0  # 2 units per $1
+        can_refuel = not (self.current_job and self.job_state == "dropoff")
+
+        # --- Refueling session logic ---
         if can_refuel and self.is_on_pump_tile() and self.car.is_handbraking():
             if keys[pygame.K_f]:
                 self.is_refueling = True
+                if self.tank_session is None:
+                    # Start new refueling session
+                    self.tank_session = {"fuel_added": 0.0, "cost": 0.0}
                 fuel_needed = self.car.max_fuel - self.car.fuel
-                if self.car.fuel < self.car.max_fuel and self.money >= FUEL_PRICE * 0.5:
-                    fuel_to_add = min(0.5, fuel_needed)
-                    cost = FUEL_PRICE * fuel_to_add
-                    if self.money >= cost:
-                        self.car.fuel = min(self.car.fuel + fuel_to_add, self.car.max_fuel)
-                        self.money -= cost
+                max_affordable_fuel = self.money * FUEL_PER_DOLLAR
+                fuel_to_add = min(FUEL_PER_DOLLAR * 0.5, fuel_needed, max_affordable_fuel)
+                cost = fuel_to_add / FUEL_PER_DOLLAR
+                # Only add fuel if enough money and not full and fuel_to_add > 0
+                if self.car.fuel < self.car.max_fuel and self.money >= cost and fuel_to_add > 0:
+                    self.car.fuel += fuel_to_add
+                    self.money -= cost  # Money is deducted immediately for precise control
+                    self.tank_session["fuel_added"] += fuel_to_add
+                    self.tank_session["cost"] += cost
+                # If can't afford next step or no fuel to add, finish session and show animation
+                if fuel_to_add <= 0 or self.money < (0.5 / FUEL_PER_DOLLAR):
+                    if self.tank_session and self.tank_session["fuel_added"] > 0:
                         self.cash_animations.append({
-                            "text":f"-${int(cost)}",
-                            "color": (255, 40, 40),  # red for spending
+                            "text": f"-${int(round(self.tank_session['cost']))}",
+                            "color": (255, 40, 40),
                             "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
                             "alpha": 200,
-                            "lifetime": 0.7 
+                            "lifetime": 0.7
                         })
+                    self.tank_session = None
+            else:
+                # F released or not pressed
+                if self.tank_session and self.tank_session["fuel_added"] > 0:
+                    self.cash_animations.append({
+                        "text": f"-${int(round(self.tank_session['cost']))}",
+                        "color": (255, 40, 40),
+                        "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                        "alpha": 200,
+                        "lifetime": 0.7
+                    })
+                self.tank_session = None
+        else:
+            # Not on pump or can't refuel
+            if self.tank_session and self.tank_session["fuel_added"] > 0:
+                self.cash_animations.append({
+                    "text": f"-${int(round(self.tank_session['cost']))}",
+                    "color": (255, 40, 40),
+                    "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                    "alpha": 200,
+                    "lifetime": 0.7
+                })
+            self.tank_session = None
+
+        # If tank is full during refueling, finish session and show animation
+        if self.tank_session and self.car.fuel >= self.car.max_fuel and self.tank_session["fuel_added"] > 0:
+            self.cash_animations.append({
+                "text": f"-${int(round(self.tank_session['cost']))}",
+                "color": (255, 40, 40),
+                "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                "alpha": 200,
+                "lifetime": 0.7
+            })
+            self.tank_session = None
+
+        # === Hunger logic ===
+        if abs(self.car.speed) > 0.1 and self.hunger > 0:
+            self.hunger -= 0.012 / 4  # 4x slower than fuel
+            self.hunger = max(self.hunger, 0)
+
+        # === Eating logic (now uses F, only if enough money and no customer in car) ===
+        self.is_eating = False
+        FOOD_PRICE = 20
+        can_eat = (
+            self.is_on_food_tile()
+            and self.car.is_handbraking()
+            and self.money >= FOOD_PRICE
+            and not (self.current_job and self.job_state == "dropoff")  # No customer in car
+        )
+        if can_eat and keys[pygame.K_f]:
+            if self.hunger < self.max_hunger:
+                self.is_eating = True
+                self.hunger = self.max_hunger
+                self.money -= FOOD_PRICE
+                self.cash_animations.append({
+                    "text": f"-${FOOD_PRICE}",
+                    "color": (255, 40, 40),
+                    "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 110),
+                    "alpha": 200,
+                    "lifetime": 0.7
+                })
+
+        # === Out of hunger (starvation) ===
+        if self.hunger <= 0:
+            self.car.speed = 0  # Stop the car
+            # Show "STARVED TO DEATH" message in the center of the screen
+            message = "STARVED TO DEATH"
+            font = pygame.font.Font(self.font_path, 64)
+            text_color = (255, 255, 255)
+            shadow_color = (40, 40, 40)
+            text_surface = font.render(message, True, text_color)
+            shadow_surface = font.render(message, True, shadow_color)
+            screen_rect = self.main.screen.get_rect()
+            text_rect = text_surface.get_rect(center=screen_rect.center)
+            shadow_rect = text_rect.copy()
+            shadow_rect.x += 4
+            shadow_rect.y += 4
+
+            bg_width = text_rect.width + 80
+            bg_height = text_rect.height + 60
+            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+            bg_rect = bg_img.get_rect(center=screen_rect.center)
+            self.main.screen.blit(bg_img, bg_rect)
+
+            self.main.screen.blit(shadow_surface, shadow_rect)
+            self.main.screen.blit(text_surface, text_rect)
+
+            pygame.display.flip()
+            return  # Skip rest of loop if dead
 
         # Draw game map
         screen.fill((50, 50, 50))
@@ -335,13 +453,12 @@ class Game:
 
         # === ARROW TO CURRENT JOB TARGET ===
         if self.current_job and self.job_state:
-            # Set arrow color to match minimap dot color
+            # Set arrow color to yellow (same as PLAY in menu)
+            arrow_color = (252, 186, 3)
             if self.job_state == "pickup":
                 target_tile = self.current_job.pickup_tile_loc
-                arrow_color = (0, 120, 255)  # Blue for pickup
             else:
                 target_tile = self.current_job.delivery_tile_loc
-                arrow_color = (0, 200, 0)    # Green for dropoff
 
             target_pos = self.tile_to_world(target_tile)
             car_screen_x = self.car.pos.x - camera_x
@@ -390,32 +507,79 @@ class Game:
             self.main.screen.blit(shadow_surface, shadow_rect)
             self.main.screen.blit(text_surface, text_rect)
 
-        # REFUEL MESSAGE
-        if can_refuel and self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
-            # Show "Hold F to refuel" message above the dashboard
-            message = "Hold F to refuel"
-            font = pygame.font.Font(self.font_path, 40)
-            text_color = (255, 255, 255)
-            shadow_color = (40, 40, 40)
-            text_surface = font.render(message, True, text_color)
-            shadow_surface = font.render(message, True, shadow_color)
-            screen_rect = self.main.screen.get_rect()
-            text_rect = text_surface.get_rect()
-            group_center = (screen_rect.centerx, screen_rect.height - 60)
-            text_rect.center = group_center
-            shadow_rect = text_rect.copy()
-            shadow_rect.x += 4
-            shadow_rect.y += 4
+        # === REFUEL & FOOD MESSAGES (above dashboard, English, with all conditions) ===
+        FUEL_PER_DOLLAR = 2.0
+        FOOD_PRICE = 20
 
-            bg_width = text_rect.width + 60
-            bg_height = text_rect.height + 30
-            bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
-            bg_rect = bg_img.get_rect()
-            bg_rect.center = group_center
-            self.main.screen.blit(bg_img, bg_rect)
+        # Refuel message logic
+        if self.is_on_pump_tile() and self.car.is_handbraking():
+            if self.current_job and self.job_state == "dropoff":
+                message = "Cannot refuel – customer in car"
+            elif self.car.fuel < self.car.max_fuel:
+                if self.money < (0.5 / FUEL_PER_DOLLAR):
+                    message = "Not enough money for refueling"
+                else:
+                    message = "Hold F to refuel"
+            else:
+                message = None
+            if message:
+                font = pygame.font.Font(self.font_path, 40)
+                text_color = (255, 255, 255)
+                shadow_color = (40, 40, 40)
+                text_surface = font.render(message, True, text_color)
+                shadow_surface = font.render(message, True, shadow_color)
+                screen_rect = self.main.screen.get_rect()
+                text_rect = text_surface.get_rect()
+                group_center = (screen_rect.centerx, screen_rect.height - 60)
+                text_rect.center = group_center
+                shadow_rect = text_rect.copy()
+                shadow_rect.x += 4
+                shadow_rect.y += 4
 
-            self.main.screen.blit(shadow_surface, shadow_rect)
-            self.main.screen.blit(text_surface, text_rect)
+                bg_width = text_rect.width + 60
+                bg_height = text_rect.height + 30
+                bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+                bg_rect = bg_img.get_rect()
+                bg_rect.center = group_center
+                self.main.screen.blit(bg_img, bg_rect)
+
+                self.main.screen.blit(shadow_surface, shadow_rect)
+                self.main.screen.blit(text_surface, text_rect)
+
+        # Food message logic
+        if self.is_on_food_tile() and self.car.is_handbraking():
+            if self.current_job and self.job_state == "dropoff":
+                message = "Cannot eat – customer in car"
+            elif self.hunger < self.max_hunger:
+                if self.money >= FOOD_PRICE:
+                    message = "Hold F to eat"
+                else:
+                    message = "Not enough money for food"
+            else:
+                message = None
+            if message:
+                font = pygame.font.Font(self.font_path, 40)
+                text_color = (255, 255, 255)
+                shadow_color = (40, 40, 40)
+                text_surface = font.render(message, True, text_color)
+                shadow_surface = font.render(message, True, shadow_color)
+                screen_rect = self.main.screen.get_rect()
+                text_rect = text_surface.get_rect()
+                group_center = (screen_rect.centerx, screen_rect.height - 60)
+                text_rect.center = group_center
+                shadow_rect = text_rect.copy()
+                shadow_rect.x += 4
+                shadow_rect.y += 4
+
+                bg_width = text_rect.width + 60
+                bg_height = text_rect.height + 30
+                bg_img = pygame.transform.scale(self.dashboard_bg_img, (bg_width, bg_height))
+                bg_rect = bg_img.get_rect()
+                bg_rect.center = group_center
+                self.main.screen.blit(bg_img, bg_rect)
+
+                self.main.screen.blit(shadow_surface, shadow_rect)
+                self.main.screen.blit(text_surface, text_rect)
 
         # FUEL ARROW TO PUMP
         if 0 < self.car.fuel < 30 and self.pump_tile_locations:
@@ -466,10 +630,12 @@ class Game:
         - Cash counter and floating cash animations
         """
 
-        dash_rect = pygame.Rect(20, self.main.screen.get_height() - 140, 240, 120)
+        # Draws the dashboard with speed, fuel, cash, and indicators
+        # Make the dashboard PNG higher to fit all bars and center content
+        dash_rect = pygame.Rect(20, self.main.screen.get_height() - 220, 240, 200)  # increased height
         dash_bg_rect = dash_rect.inflate(24, 32)
 
-        # Scale and draw PNG background for dashboard
+        # Scale and draw PNG background for dashboard (now higher)
         dashboard_bg_scaled = pygame.transform.scale(self.dashboard_bg_img, (dash_bg_rect.width, dash_bg_rect.height))
         self.main.screen.blit(dashboard_bg_scaled, dash_bg_rect.topleft)
 
@@ -480,18 +646,26 @@ class Game:
         speed_display = int(abs(self.car.speed * 5))
         speed_text = f"{speed_display} km/h"
         fuel_label = "Fuel"
+        hunger_label = "Hunger"
 
         font_speed = pygame.font.Font(self.font_path, 36)
         font_fuel = pygame.font.Font(self.font_path, 24)
+        font_hunger = pygame.font.Font(self.font_path, 24)
 
         # Render text surfaces and their shadows
         speed_surface = font_speed.render(speed_text, True, (255, 255, 255))
         speed_shadow = font_speed.render(speed_text, True, (40, 40, 40))
         fuel_surface = font_fuel.render(fuel_label, True, (255, 255, 255))
         fuel_shadow = font_fuel.render(fuel_label, True, (40, 40, 40))
+        hunger_surface = font_hunger.render(hunger_label, True, (255, 255, 255))
+        hunger_shadow = font_hunger.render(hunger_label, True, (40, 40, 40))
 
-        # Calculate vertical positions for centering
-        total_height = speed_surface.get_height() + 8 + fuel_surface.get_height() + 8 + 30  # 30 for fuel gauge
+        # Calculate vertical positions for centering (now with more space)
+        total_height = (
+            speed_surface.get_height() + 8 +
+            fuel_surface.get_height() + 8 + 30 +  # fuel bar
+            hunger_surface.get_height() + 8 + 30  # hunger bar
+        )
         start_y = dash_bg_rect.y + (dash_bg_rect.height - total_height) // 2
 
         # Speed text centered
@@ -528,10 +702,29 @@ class Game:
         # Bar border
         pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 2, border_radius=8)
 
-        if self.brake_pressed:
-            # Show brake indicator if brake is pressed
-            pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
-            self._draw_text("BRAKE", dash_rect.x + 15, dash_rect.bottom - 24, (0, 0, 0), size=20)
+        # Hunger label centered
+        hunger_x = center_x - hunger_surface.get_width() // 2
+        hunger_y = bar_y + bar_height + 8
+        self.main.screen.blit(hunger_shadow, (hunger_x + 2, hunger_y + 2))
+        self.main.screen.blit(hunger_surface, (hunger_x, hunger_y))
+
+        # === Hunger progress bar ===
+        bar_y2 = hunger_y + hunger_surface.get_height() + 8
+        hunger_level = max(0, min(self.hunger, 100))
+        fill_width = int(bar_width * (hunger_level / 100))
+
+        # Bar background
+        pygame.draw.rect(self.main.screen, (60, 60, 60), (bar_x, bar_y2, bar_width, bar_height), border_radius=8)
+        # Bar fill (color changes with level)
+        if hunger_level > 60:
+            fill_color = (0, 200, 200)
+        elif hunger_level > 30:
+            fill_color = (255, 200, 0)
+        else:
+            fill_color = (255, 0, 0)
+        pygame.draw.rect(self.main.screen, fill_color, (bar_x, bar_y2, fill_width, bar_height), border_radius=8)
+        # Bar border
+        pygame.draw.rect(self.main.screen, (255, 255, 255), (bar_x, bar_y2, bar_width, bar_height), 2, border_radius=8)
 
         # Draw only the red "P" in a circle in the dashboard if handbrake is active
         if self.car.is_handbraking():
@@ -569,6 +762,19 @@ class Game:
         self.main.screen.blit(score_shadow, (score_x + 2, score_y + 2))
         self.main.screen.blit(score_surface, (score_x, score_y))
 
+        # === Display Customer Status ===
+        if self.current_job and self.job_state == "dropoff":
+            customer_status = "Customer: IN CAR"
+        else:
+            customer_status = "Customer: NONE"
+        font_cust = pygame.font.Font(self.font_path, 24)
+        cust_surface = font_cust.render(customer_status, True, (255, 255, 255))
+        cust_shadow = font_cust.render(customer_status, True, (40, 40, 40))
+        cust_x = 20
+        cust_y = score_y + score_surface.get_height() + 4
+        self.main.screen.blit(cust_shadow, (cust_x + 2, cust_y + 2))
+        self.main.screen.blit(cust_surface, (cust_x, cust_y))
+
         # === Floating Money Animation ===
         for anim in self.cash_animations[:]:
             font_float = pygame.font.Font(self.font_path, 28)
@@ -589,22 +795,29 @@ class Game:
                 self.cash_animations.remove(anim)
 
     def draw_minimap(self):
-        """Displays the minimap in the bottom right corner and highlights the car position and current target only."""
-        
+        """Displays the minimap in the bottom right corner and highlights the car position, current target, and pump/food icons."""
         scale = self.minimap_scale
         minimap = self.minimap_surface.copy()
         car_x = int(self.car.pos.x / self.tile_size * scale)
         car_y = int(self.car.pos.y / self.tile_size * scale)
         pygame.draw.circle(minimap, (255, 0, 0), (car_x, car_y), max(3, int(3 * scale)))
 
+        # Draw pump icons on minimap
+        for tx, ty in self.pump_tile_locations:
+            icon_x = int(tx * scale - self.pump_icon_img.get_width() // 2)
+            icon_y = int(ty * scale - self.pump_icon_img.get_height() // 2)
+            minimap.blit(self.pump_icon_img, (icon_x, icon_y))
+
+        # Draw food icons on minimap
+        for tx, ty in self.food_tile_locations:
+            icon_x = int(tx * scale - self.food_icon_img.get_width() // 2)
+            icon_y = int(ty * scale - self.food_icon_img.get_height() // 2)
+            minimap.blit(self.food_icon_img, (icon_x, icon_y))
+
         # Show only the current target (pickup or dropoff)
         if self.current_job is not None and self.job_state:
-            if self.job_state == "pickup":
-                tx, ty = self.current_job.pickup_tile_loc
-                color = (0, 120, 255)  # Blue for pickup
-            else:
-                tx, ty = self.current_job.delivery_tile_loc
-                color = (0, 200, 0)    # Green for dropoff
+            tx, ty = self.current_job.pickup_tile_loc if self.job_state == "pickup" else self.current_job.delivery_tile_loc
+            color = (252, 186, 3)  # Yellow for both pickup and dropoff
             target_x = int(tx * scale)
             target_y = int(ty * scale)
             pygame.draw.circle(minimap, color, (target_x, target_y), max(4, int(4 * scale)))
