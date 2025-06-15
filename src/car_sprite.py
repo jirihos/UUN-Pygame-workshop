@@ -10,21 +10,25 @@ class CarSprite(pygame.sprite.Sprite):
         )
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(x, y))
+        
+        self.collision_width = size[0] * 0.5
+        self.collision_height = size[1] * 0.85
+
 
         self.pos = pygame.Vector2(x, y)
         self.angle = 0
         self.speed = 0
 
-        self.max_speed = 10
+        self.max_speed = 5
         self.max_reverse_speed = -2
-        self.acceleration = 0.2
+        self.acceleration = 0.1
         self.brake_strength = 0.3
-        self.friction = 0.05
+        self.friction = 0.5
 
         self.steering_angle = 0
-        self.steering_speed = 0.3
-        self.max_steering = 3
-        self.steering_return = 0.1
+        self.steering_speed = 0.8
+        self.max_steering = 5.0
+        self.steering_return = 0.5
 
         self.handbrake_engaged = False
         self.stored_momentum = 0
@@ -74,17 +78,39 @@ class CarSprite(pygame.sprite.Sprite):
             dx = -math.sin(rad) * self.speed
             dy = -math.cos(rad) * self.speed
 
-            if game.is_walkable(self.pos.x + dx, self.pos.y + dy):
-                self.pos.x += dx
-                self.pos.y += dy
+            new_x = self.pos.x + dx
+            new_y = self.pos.y + dy
 
+            half_width = self.collision_width / 2
+            half_height = self.collision_height / 2
+
+            # Define bounding box collision corners
+            collision_points = [
+                (new_x - half_width, new_y - half_height),
+                (new_x + half_width, new_y - half_height),
+                (new_x - half_width, new_y + half_height),
+                (new_x + half_width, new_y + half_height),
+            ]
+
+            if all(game.is_walkable(px, py) for px, py in collision_points):
+                self.pos.x = new_x
+                self.pos.y = new_y
+            else:
+                # Debug: print which corner caused the block
+                for i, (px, py) in enumerate(collision_points):
+                    if not game.is_walkable(px, py):
+                        print(f"[DEBUG] Collision blocked at corner {i}: ({px:.1f}, {py:.1f})")
+
+        # Update image and screen rect
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=(self.pos - pygame.Vector2(camera_x, camera_y)))
 
-        # Fuel consumption
+        # Fuel usage
         if abs(self.speed) > 0.1 and self.fuel > 0:
             self.fuel -= 0.005
             self.fuel = max(self.fuel, 0)
+
+
 
     def toggle_handbrake(self):
         if not self.handbrake_engaged:
