@@ -185,7 +185,8 @@ class Game:
         
         # Track job count and decide if it's a timed one
         self.job_counter += 1
-        self.is_timed_job = (self.job_counter % self.timed_job_interval == 0)
+        # self.is_timed_job = (self.job_counter % self.timed_job_interval == 0)
+        self.is_timed_job = False
         
         # Determine time limit if this is a timed job
         time_limit = self.timed_job_duration if self.is_timed_job else None
