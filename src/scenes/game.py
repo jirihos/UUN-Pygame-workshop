@@ -13,6 +13,7 @@ class Game:
     """The actual game. Renders the map, HUD, and contains the main game logic.
     
     Handles player input, car movement, job management, and rendering of the game scene.
+
     Attributes:
         main: Reference to the main controller (provides screen, clock, etc.)
         sprites: Group of all game sprites.
@@ -798,6 +799,7 @@ class Game:
 
     def draw_dashboard(self):
         """Draws the lower-left dashboard area of the screen, including:
+
         - Speed display
         - Fuel level bar
         - Handbrake/brake indicators

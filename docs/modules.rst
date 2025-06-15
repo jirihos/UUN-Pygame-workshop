@@ -29,11 +29,6 @@ Modules
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: tiles
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: entities.passenger_manager
    :members:
    :undoc-members:

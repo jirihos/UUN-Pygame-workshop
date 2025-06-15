@@ -54,6 +54,7 @@ class CarSprite(pygame.sprite.Sprite):
 
     def update(self, game, camera_x, camera_y, keys=None):
         """Update the car's position, speed, and angle based on input and game state.
+
         Args:
             game (Game): The game instance to check for collisions.
             camera_x (float): The camera's x position for rendering.

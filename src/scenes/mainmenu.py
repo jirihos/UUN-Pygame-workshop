@@ -108,6 +108,7 @@ class MainMenu():
 
     def loop(self, dt):
         """Performs the Event, Update, Render cycle.
+
         Args:
             dt (int): Delta time in milliseconds since the last frame.
         """

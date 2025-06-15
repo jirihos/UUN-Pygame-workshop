@@ -6,7 +6,9 @@ class PassengerManager:
 
     def __init__(self, sprite_sheet):
         """Initializes the PassengerManager with a sprite sheet.
-        :param sprite_sheet: The sprite sheet containing passenger animations.
+        
+        Args:
+            sprite_sheet: The sprite sheet containing passenger animations.
         """
 
         self.sprite_sheet = sprite_sheet
@@ -17,8 +19,10 @@ class PassengerManager:
 
     def start_entry_animation(self, x, y):
         """Starts the entry animation for a passenger at the given coordinates.
-        :param x: The x-coordinate where the passenger should appear.
-        :param y: The y-coordinate where the passenger should appear.
+        
+        Args:
+            x: The x-coordinate where the passenger should appear.
+            y: The y-coordinate where the passenger should appear.
         """
 
         self.sprite = Passenger(x, y, self.sprite_sheet)
@@ -37,16 +41,20 @@ class PassengerManager:
 
     def update(self, dt):
         """Updates the passenger sprite and its animations.
-        :param dt: The time delta since the last update.
+
+        Args:
+            dt: The time delta since the last update.
         """
 
         self.group.update(dt)
 
     def draw(self, screen, camera_x, camera_y):
         """Draws the passenger sprite on the screen.
-        :param screen: The screen surface to draw on.
-        :param camera_x: The x-coordinate of the camera.
-        :param camera_y: The y-coordinate of the camera.
+
+        Args:
+            screen: The screen surface to draw on.
+            camera_x: The x-coordinate of the camera.
+            camera_y: The y-coordinate of the camera.
         """
         
         if self.sprite:

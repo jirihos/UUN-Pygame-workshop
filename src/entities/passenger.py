@@ -5,9 +5,11 @@ class Passenger(pygame.sprite.Sprite):
 
     def __init__(self, x, y, sprite_sheet):
         """Initializes the Passenger sprite with a position and a sprite sheet.
-        :param x: The x-coordinate where the passenger should appear.
-        :param y: The y-coordinate where the passenger should appear.
-        :param sprite_sheet: The sprite sheet containing passenger animations.
+        
+        Args:
+            x: The x-coordinate where the passenger should appear.
+            y: The y-coordinate where the passenger should appear.
+            sprite_sheet: The sprite sheet containing passenger animations.
         """
 
         super().__init__()
@@ -35,7 +37,9 @@ class Passenger(pygame.sprite.Sprite):
 
     def update(self, dt):
         """Updates the passenger sprite's animation based on the time delta.
-        :param dt: The time delta since the last update.
+        
+        Args:
+            dt: The time delta since the last update.
         """
         
         self.animation_timer += dt
