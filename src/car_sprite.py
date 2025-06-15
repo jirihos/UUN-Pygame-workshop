@@ -129,8 +129,6 @@ class CarSprite(pygame.sprite.Sprite):
             self.fuel -= 0.012
             self.fuel = max(self.fuel, 0)
 
-
-
     def toggle_handbrake(self):
         """Toggle the handbrake state of the car."""
 
