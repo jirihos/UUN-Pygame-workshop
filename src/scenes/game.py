@@ -644,6 +644,12 @@ class Game:
         self.sprites.draw(screen)
         self.passenger_group.draw(screen)  # Draw the passenger
 
+        # Render car hitbox for debugging
+        if False and self.car.collision_points is not None:
+            for point in self.car.collision_points:
+                point = point - pygame.Vector2(camera_x, camera_y)
+                pygame.draw.circle(screen, (240, 0, 0), point, 5)
+
         pygame.display.flip()
 
     def draw_dashboard(self):
