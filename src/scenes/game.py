@@ -8,8 +8,6 @@ class Game:
     def __init__(self, main):
         self.main = main
         self.sprites = pygame.sprite.Group()
-        self.car = CarSprite(self.main.screen.get_width() // 2, self.main.screen.get_height() // 2)
-        self.sprites.add(self.car)
         self.font = pygame.font.SysFont(None, 36)
         self.brake_pressed = False
 
@@ -55,6 +53,18 @@ class Game:
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
 
+        # === Spawn car on first walkable tile ===
+        for y, row in enumerate(self.tile_map):
+            for x, tile_id in enumerate(row):
+                if tile_id in self.WALKABLE_TILES:
+                    start_x = x * self.tile_size + self.tile_size // 2
+                    start_y = y * self.tile_size + self.tile_size // 2
+                    self.car = CarSprite(start_x, start_y)
+                    self.sprites.add(self.car)
+                    break
+            if hasattr(self, 'car'):
+                break
+
     def is_walkable(self, x, y):
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
@@ -81,12 +91,18 @@ class Game:
         self.car.update(self, camera_x, camera_y, keys)
 
         screen.fill((255, 255, 255))
+
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
                 pos = (x * self.tile_size - camera_x, y * self.tile_size - camera_y)
                 tile_img = self.tile_images.get(tile_id)
                 if tile_img:
                     screen.blit(tile_img, pos)
+
+                # === Draw red outline for unwalkable tiles (debug) ===
+                if tile_id not in self.WALKABLE_TILES:
+                    pygame.draw.rect(screen, (255, 0, 0), (*pos, self.tile_size, self.tile_size), 2)
+
         self.sprites.draw(screen)
 
         screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
@@ -100,11 +116,9 @@ class Game:
         pygame.draw.rect(self.main.screen, (20, 20, 20), dash_rect, border_radius=10)
         pygame.draw.rect(self.main.screen, (80, 80, 80), dash_rect, 3, border_radius=10)
 
-        # === Speed Display ===
         speed_display = int(abs(self.car.speed * 5))  # scaled up display
         self._draw_text(f"{speed_display} km/h", dash_rect.x + 20, dash_rect.y + 20, (255, 255, 255), size=36)
 
-        # === Fuel Gauge ===
         fuel_level = max(0, min(self.car.fuel, 100))  # clamp to [0,100]
         blocks = 5
         block_width = 20
@@ -114,22 +128,20 @@ class Game:
         y = dash_rect.y + 20
 
         for i in range(blocks):
-            # Determine fill level
             threshold = (i + 1) * (100 / blocks)
-            color = (100, 100, 100)  # default: empty
+            color = (100, 100, 100)
             if fuel_level >= threshold:
                 if i >= 3:
-                    color = (0, 200, 0)  # green
+                    color = (0, 200, 0)
                 elif i == 2:
-                    color = (255, 200, 0)  # yellow
+                    color = (255, 200, 0)
                 else:
-                    color = (255, 0, 0)  # red
+                    color = (255, 0, 0)
 
             rect = pygame.Rect(start_x + i * (block_width + spacing), y, block_width, block_height)
             pygame.draw.rect(self.main.screen, color, rect)
             pygame.draw.rect(self.main.screen, (255, 255, 255), rect, 2)
 
-        # === Brake & Handbrake Indicators ===
         if self.brake_pressed:
             pygame.draw.rect(self.main.screen, (200, 0, 0), (dash_rect.x + 10, dash_rect.bottom - 25, 80, 20))
             self._draw_text("BRAKE", dash_rect.x + 15, dash_rect.bottom - 24, (0, 0, 0), size=20)

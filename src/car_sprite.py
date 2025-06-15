@@ -2,7 +2,7 @@ import pygame
 import math
 
 class CarSprite(pygame.sprite.Sprite):
-    def __init__(self, x, y, size=(170, 200)):
+    def __init__(self, x, y, size=(85, 100)):
         super().__init__()
 
         self.original_image = pygame.transform.scale(
@@ -10,6 +10,10 @@ class CarSprite(pygame.sprite.Sprite):
         )
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(x, y))
+        
+        self.collision_width = size[0] * 0.0
+        self.collision_height = size[1] * 0.0
+
 
         self.pos = pygame.Vector2(x, y)
         self.angle = 0
@@ -74,17 +78,39 @@ class CarSprite(pygame.sprite.Sprite):
             dx = -math.sin(rad) * self.speed
             dy = -math.cos(rad) * self.speed
 
-            if game.is_walkable(self.pos.x + dx, self.pos.y + dy):
-                self.pos.x += dx
-                self.pos.y += dy
+            new_x = self.pos.x + dx
+            new_y = self.pos.y + dy
 
+            half_width = self.collision_width / 2
+            half_height = self.collision_height / 2
+
+            # Define bounding box collision corners
+            collision_points = [
+                (new_x - half_width, new_y - half_height),
+                (new_x + half_width, new_y - half_height),
+                (new_x - half_width, new_y + half_height),
+                (new_x + half_width, new_y + half_height),
+            ]
+
+            if all(game.is_walkable(px, py) for px, py in collision_points):
+                self.pos.x = new_x
+                self.pos.y = new_y
+            else:
+                # Debug: print which corner caused the block
+                for i, (px, py) in enumerate(collision_points):
+                    if not game.is_walkable(px, py):
+                        print(f"[DEBUG] Collision blocked at corner {i}: ({px:.1f}, {py:.1f})")
+
+        # Update image and screen rect
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=(self.pos - pygame.Vector2(camera_x, camera_y)))
 
-        # Fuel consumption
+        # Fuel usage
         if abs(self.speed) > 0.1 and self.fuel > 0:
             self.fuel -= 0.005
             self.fuel = max(self.fuel, 0)
+
+
 
     def toggle_handbrake(self):
         if not self.handbrake_engaged:
