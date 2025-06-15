@@ -171,7 +171,7 @@ class Game:
                     self.new_job()
         # Refueling logic
         self.is_refueling = False
-        if self.is_on_pump_tile() and self.car.is_handbrake():
+        if self.is_on_pump_tile() and self.car.is_handbraking():
             if keys[pygame.K_f]:
                 self.is_refueling = True
                 if self.car.fuel < self.car.max_fuel:
@@ -235,7 +235,7 @@ class Game:
             self.main.screen.blit(text_surface, text_rect)
 
         # REFUEL MESSAGE
-        if self.is_on_pump_tile() and self.car.is_handbrake() and self.car.fuel < self.car.max_fuel:
+        if self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
             message = "Hold F to refuel"
             font = pygame.font.Font(self.font_path, 40)
             text_color = (255, 255, 255)
