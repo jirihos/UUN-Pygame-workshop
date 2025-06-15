@@ -56,7 +56,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [0, 22, 850, 851, 852, 779, 674, 709, 782]
+        self.WALKABLE_TILES = [0, 22, 850, 851, 852, 779, 674, 709, 782, 814]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
