@@ -62,7 +62,7 @@ class Game:
         map_filepath = os.path.join(os.path.dirname(base_path), "editor/tile_map.txt")
         self.tile_map = load_tile_map(map_filepath)
 
-        self.WALKABLE_TILES = [0, 22, 850, 851, 852, 779, 674, 709, 782]
+        self.WALKABLE_TILES = [0, 22, 814, 850, 851, 852, 779, 674, 709, 782]
 
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
@@ -70,14 +70,18 @@ class Game:
         # Find pickup and pump tile locations
         self.pickup_tile_locations = []
         self.pump_tile_locations = []
+        self.food_tile_locations = []
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
                 PICKUP_TILE = 851
                 PUMP_TILE = 852
+                FOOD_TILE = 814
                 if tile_id == PICKUP_TILE:
                     self.pickup_tile_locations.append((x, y))
                 elif tile_id == PUMP_TILE:
                     self.pump_tile_locations.append((x, y))
+                elif tile_id == FOOD_TILE:
+                    self.food_tile_locations.append((x, y))
         
         self.new_job()
 
