@@ -167,7 +167,8 @@ class Game:
         self.show_fps = False  # FPS display toggle
 
         self.passenger_group = pygame.sprite.Group()
-        self.passenger_sprite_sheet = pygame.image.load("src/entities/RPG_assets.png").convert_alpha()
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        self.passenger_sprite_sheet = pygame.image.load(os.path.join(base_path, "entities/RPG_assets.png")).convert_alpha()
         self.passenger_sprite = None
         self.passenger_visible = False
 

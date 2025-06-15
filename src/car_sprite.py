@@ -1,5 +1,6 @@
 import pygame
 import math
+import os
 
 class CarSprite(pygame.sprite.Sprite):
 
@@ -16,8 +17,9 @@ class CarSprite(pygame.sprite.Sprite):
 
         super().__init__()
 
+        base_path = os.path.dirname(os.path.dirname(__file__))
         self.original_image = pygame.transform.scale(
-            pygame.image.load("assets/Car_Ruber.png").convert_alpha(), size
+            pygame.image.load(os.path.join(base_path, "assets/Car_Ruber.png")).convert_alpha(), size
         )
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(x, y))
