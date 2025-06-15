@@ -236,18 +236,29 @@ class Game:
                     # Start new refueling session
                     self.tank_session = {"fuel_added": 0.0, "cost": 0.0}
                 fuel_needed = self.car.max_fuel - self.car.fuel
-                fuel_to_add = min(FUEL_PER_DOLLAR * 0.5, fuel_needed)
+                max_affordable_fuel = self.money * FUEL_PER_DOLLAR
+                fuel_to_add = min(FUEL_PER_DOLLAR * 0.5, fuel_needed, max_affordable_fuel)
                 cost = fuel_to_add / FUEL_PER_DOLLAR
-                # Only add fuel if enough money and not full
-                if self.car.fuel < self.car.max_fuel and self.money >= cost:
+                # Only add fuel if enough money and not full and fuel_to_add > 0
+                if self.car.fuel < self.car.max_fuel and self.money >= cost and fuel_to_add > 0:
                     self.car.fuel += fuel_to_add
+                    self.money -= cost  # Money is deducted immediately for precise control
                     self.tank_session["fuel_added"] += fuel_to_add
                     self.tank_session["cost"] += cost
+                # If can't afford next step or no fuel to add, finish session and show animation
+                if fuel_to_add <= 0 or self.money < (0.5 / FUEL_PER_DOLLAR):
+                    if self.tank_session and self.tank_session["fuel_added"] > 0:
+                        self.cash_animations.append({
+                            "text": f"-${int(round(self.tank_session['cost']))}",
+                            "color": (255, 40, 40),
+                            "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                            "alpha": 200,
+                            "lifetime": 0.7
+                        })
+                    self.tank_session = None
             else:
                 # F released or not pressed
                 if self.tank_session and self.tank_session["fuel_added"] > 0:
-                    # End of refueling session, pay and show animation
-                    self.money -= self.tank_session["cost"]
                     self.cash_animations.append({
                         "text": f"-${int(round(self.tank_session['cost']))}",
                         "color": (255, 40, 40),
@@ -259,7 +270,6 @@ class Game:
         else:
             # Not on pump or can't refuel
             if self.tank_session and self.tank_session["fuel_added"] > 0:
-                self.money -= self.tank_session["cost"]
                 self.cash_animations.append({
                     "text": f"-${int(round(self.tank_session['cost']))}",
                     "color": (255, 40, 40),
@@ -269,9 +279,8 @@ class Game:
                 })
             self.tank_session = None
 
-        # If tank is full during refueling, finish session
+        # If tank is full during refueling, finish session and show animation
         if self.tank_session and self.car.fuel >= self.car.max_fuel and self.tank_session["fuel_added"] > 0:
-            self.money -= self.tank_session["cost"]
             self.cash_animations.append({
                 "text": f"-${int(round(self.tank_session['cost']))}",
                 "color": (255, 40, 40),
