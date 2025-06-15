@@ -88,8 +88,8 @@ class MainMenu():
 
             # 1. Studio name fade-in (text + shadow only)
             studio_alpha = min(255, int(255 * (elapsed / studio_fadein)))
-            studio_surface = studio_font.render("Tým 12 - summer 2025", True, (252, 186, 3))
-            studio_shadow = studio_font.render("Tým 12 - summer 2025", True, (40, 40, 40))
+            studio_surface = studio_font.render("Team 12 - summer 2025", True, (252, 186, 3))
+            studio_shadow = studio_font.render("Team 12 - summer 2025", True, (40, 40, 40))
             studio_x = (screen.get_width() - studio_surface.get_width()) // 2
             studio_y = screen.get_height() // 2 - 350
 
