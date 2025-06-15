@@ -4,6 +4,7 @@ from scenes.mainmenu import MainMenu
 from scenes.game import Game
 
 class Main():
+    """The main class that initializes Pygame"""
     def __init__(self):
         self.WIDTH = 1920
         self.HEIGHT = 1080
