@@ -9,7 +9,7 @@ class MainMenu():
         self.intro_timer = self.intro_duration
         self.main = main
 
-        self.title_text = "Ruber Car Game"
+        self.title_text = "Ruber Taxi Service"
         self.title_color = (252, 186, 3)
         self.title_font = pygame.font.SysFont(None, 96)
         self.title_anim_time = 0

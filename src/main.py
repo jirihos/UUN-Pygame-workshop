@@ -12,7 +12,7 @@ class Main():
         pygame.init()
 
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption("Ruber Car Game")
+        pygame.display.set_caption("Ruber Taxi Service")
 
         self.clock = pygame.time.Clock()
         self.running = False
