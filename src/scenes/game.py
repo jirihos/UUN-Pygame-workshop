@@ -174,6 +174,8 @@ class Game:
 
         self.passenger_manager = PassengerManager(self.passenger_sprite_sheet)
 
+        self.show_help = False
+
     def new_job(self):
         """Creates a new job by randomly selecting two pickup locations."""
 
@@ -312,12 +314,12 @@ class Game:
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps
                 elif event.key == pygame.K_RETURN:
-                    # Only toggle accepting_jobs on ENTER
                     self.accepting_jobs = not self.accepting_jobs
                     print(f"[JOB] Accepting jobs: {self.accepting_jobs}")
-                    # If switched ON and no job, generate new job
                     if self.accepting_jobs and not self.current_job and not self.pending_job:
                         self.new_job()
+                elif event.key == pygame.K_F1:
+                    self.show_help = not self.show_help
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -762,6 +764,20 @@ class Game:
                 point = point - pygame.Vector2(camera_x, camera_y)
                 pygame.draw.circle(screen, (240, 0, 0), point, 5)
 
+        # ===  Draw help overlay ===
+        if self.show_help:
+            self.draw_help_overlay()
+        else:
+            #  Draw the help text in the top-right corner
+            font = pygame.font.Font(self.font_path, 28)
+            text = "Press F1 for help"
+            surface = font.render(text, True, (255, 255, 255))
+            shadow = font.render(text, True, (40, 40, 40))
+            x = self.main.WIDTH - surface.get_width() - 40
+            y = 30
+            self.main.screen.blit(shadow, (x + 2, y + 2))
+            self.main.screen.blit(surface, (x, y))
+
         pygame.display.flip()
 
     def save_high_score(self):
@@ -1050,3 +1066,86 @@ class Game:
         font = pygame.font.Font(self.font_path, size)
         surface = font.render(text, True, color)
         self.main.screen.blit(surface, (x, y))
+
+    def draw_help_overlay(self):
+        """Draws a semi-transparent help overlay over the entire screen with colored keys."""
+        overlay = pygame.Surface((self.main.WIDTH, self.main.HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))  # Semi-transparent black
+
+        help_lines = [
+            ("GAME HELP",),
+            ();
+            ("Controls:",),
+            ("  ", ("W",), "/", ("S",), " - Accelerate/Reverse"),
+            ("  ", ("A",), "/", ("D",), " - Steer left/right"),
+            ("  ", ("X",), "   - Brake"),
+            ("  ", ("SPACE",), " - Handbrake (toggle)"),
+            ("  ", ("F",), "   - Refuel/Eat/Upgrade (when on correct tile and stopped)"),
+            ("  ", ("L",), "   - Toggle FPS display"),
+            ("  ", ("ENTER",), " - Toggle job auto-accept"),
+            ("  ", ("ESC",), " - Return to menu"),
+            ();
+            ("Jobs:",),
+            "  - Pick up passengers at yellow markers.",
+            "  - Deliver them to the destination tile.",
+            "  - Stop and use handbrake to pick up/drop off.",
+            ();
+            ("Fuel:",),
+            "  - Refuel at gas stations (pump icon).",
+            "  - Hold ", ("F",), " to refuel (costs money).",
+            ();
+            ("Hunger:",),
+            "  - Eat at food tiles (apple icon) when hungry.",
+            "  - Press ", ("F",), " to eat (costs money).",
+            ();
+            ("Tuning:",),
+            "  - Upgrade car speed at service tiles (wrench icon).",
+            "  - Press ", ("F",), " to upgrade (costs money, max speed limited).",
+            ();
+            "Press F1 to close this help."
+        ]
+        font = pygame.font.Font(self.font_path, 24)
+        key_color = (252, 186, 3)
+        text_color = (255, 255, 255)
+        title_color = key_color
+        y = 80
+        for line in help_lines:
+            if isinstance(line, tuple):
+                # Multi-part line (some parts are keys)
+                x = self.main.WIDTH // 2
+                parts = []
+                total_width = 0
+                rendered = []
+                for part in line:
+                    if isinstance(part, tuple):
+                        # Key
+                        surf = font.render(part[0], True, key_color)
+                    else:
+                        surf = font.render(str(part), True, title_color if part == "GAME HELP" else text_color)
+                    rendered.append(surf)
+                    total_width += surf.get_width()
+                x -= total_width // 2
+                # Draw shadow
+                shadow_x = x + 2
+                for surf in rendered:
+                    shadow = font.render(surf.get_text(), True, (40, 40, 40))
+                    overlay.blit(shadow, (shadow_x, y + 2))
+                    shadow_x += surf.get_width()
+                # Draw text
+                for surf in rendered:
+                    overlay.blit(surf, (x, y))
+                    x += surf.get_width()
+                y += font.get_height() + 6
+            elif isinstance(line, str):
+                # Simple string
+                surf = font.render(line, True, text_color)
+                shadow = font.render(line, True, (40, 40, 40))
+                x = self.main.WIDTH // 2 - surf.get_width() // 2
+                overlay.blit(shadow, (x + 2, y + 2))
+                overlay.blit(surf, (x, y))
+                y += surf.get_height() + 6
+            else:
+                # Empty line
+                y += font.get_height() // 2
+
+        self.main.screen.blit(overlay, (0, 0))
