@@ -15,6 +15,8 @@ class Game:
         self.brake_pressed = False
         self.money = 0 
         self.is_refueling = False
+        self.cash_animations = []
+        self.pending_job = None
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -149,6 +151,12 @@ class Game:
                     self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
                     self.show_fps = not self.show_fps  # Toggle FPS display
+            if self.pending_job and event.key == pygame.K_RETURN:
+                self.current_job = self.pending_job
+                self.job_state = "pickup"
+                self.pending_job = None
+                print("[JOB] Accepted new job.")
+
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -167,8 +175,30 @@ class Game:
             elif self.job_state == "dropoff":
                 if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
-                    self.money += random.randint(15,25)
+                    base_rate = 0.5  
+                    distance = self.current_job.distance(self.tile_size)
+                    earned = int(base_rate * distance)
+                    self.money += earned
+                    self.cash_animations.append({
+                        "text":f"+${earned}",
+                        "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 50),
+                        "alpha": 255,
+                        "lifetime": 1.0 
+                    })
+
+                    if len(self.cash_animations) > 5:
+                        self.cash_animations.pop(0)
+
                     self.new_job()
+                    self.job_state = None
+
+        if self.pending_job and event.key == pygame.K_RETURN:
+            self.current_job = self.pending_job
+            self.job_state = "pickup"
+            self.pending_job = None
+            print("[JOB] Accepted new job.")
+
+
         # Refueling logic
         self.is_refueling = False
         if self.is_on_pump_tile() and self.car.is_handbrake():
@@ -293,6 +323,11 @@ class Game:
                     # Then draw the red arrow
                     pygame.draw.polygon(screen, (220, 40, 40), points)
 
+        if self.pending_job:
+            self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
+
+
+
         pygame.display.flip()
 
     def draw_dashboard(self):
@@ -388,6 +423,22 @@ class Game:
 
         self.main.screen.blit(cash_shadow, (cash_x + 2, cash_y + 2))
         self.main.screen.blit(cash_surface, (cash_x, cash_y))
+
+        # === Floating Money Animation ===
+        for anim in self.cash_animations[:]:
+            font_float = pygame.font.Font(self.font_path, 28)
+            surface = font_float.render(anim["text"], True, (0, 255, 100))
+            surface.set_alpha(anim["alpha"])
+            self.main.screen.blit(surface, anim["pos"])
+
+            # Animate upward
+            anim["pos"].y -= 0.5
+            anim["lifetime"] -= 1 / 60
+            anim["alpha"] = max(0, int(anim["alpha"] - 5))
+
+            if anim["lifetime"] <= 0 or anim["alpha"] <= 0:
+                self.cash_animations.remove(anim)
+
 
 
     def draw_minimap(self):
