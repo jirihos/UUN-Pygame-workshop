@@ -85,7 +85,7 @@ camera_speed = 10
 # === Hlavní smyčka ===
 running = True
 while running:
-    screen.fill((50, 50, 50))
+    screen.fill((64, 142, 93))
 
     # === Pohyb kamery ===
     keys = pygame.key.get_pressed()
