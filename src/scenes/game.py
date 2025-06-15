@@ -20,6 +20,7 @@ class Game:
         self.cash_animations = []
         self.pending_job = None
         self.customers_served = 0  # Track number of delivered customers (score)
+        self.tank_session = None  # Track refueling session
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -224,25 +225,61 @@ class Game:
 
         # Refueling logic (now only allowed when no passenger is in the car)
         self.is_refueling = False
-        FUEL_PRICE = 2  # price per unit of fuel
-        can_refuel = not (self.current_job and self.job_state == "dropoff")  # Only allow refuel if not in dropoff phase (no passenger)
+        FUEL_PER_DOLLAR = 2.0  # 2 units per $1
+        can_refuel = not (self.current_job and self.job_state == "dropoff")
+
+        # --- Refueling session logic ---
         if can_refuel and self.is_on_pump_tile() and self.car.is_handbraking():
             if keys[pygame.K_f]:
                 self.is_refueling = True
+                if self.tank_session is None:
+                    # Start new refueling session
+                    self.tank_session = {"fuel_added": 0.0, "cost": 0.0}
                 fuel_needed = self.car.max_fuel - self.car.fuel
-                if self.car.fuel < self.car.max_fuel and self.money >= FUEL_PRICE * 0.5:
-                    fuel_to_add = min(0.5, fuel_needed)
-                    cost = FUEL_PRICE * fuel_to_add
-                    if self.money >= cost:
-                        self.car.fuel = min(self.car.fuel + fuel_to_add, self.car.max_fuel)
-                        self.money -= cost
-                        self.cash_animations.append({
-                            "text":f"-${int(cost)}",
-                            "color": (255, 40, 40),  # red for spending
-                            "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
-                            "alpha": 200,
-                            "lifetime": 0.7 
-                        })
+                fuel_to_add = min(FUEL_PER_DOLLAR * 0.5, fuel_needed)
+                cost = fuel_to_add / FUEL_PER_DOLLAR
+                # Only add fuel if enough money and not full
+                if self.car.fuel < self.car.max_fuel and self.money >= cost:
+                    self.car.fuel += fuel_to_add
+                    self.tank_session["fuel_added"] += fuel_to_add
+                    self.tank_session["cost"] += cost
+            else:
+                # F released or not pressed
+                if self.tank_session and self.tank_session["fuel_added"] > 0:
+                    # End of refueling session, pay and show animation
+                    self.money -= self.tank_session["cost"]
+                    self.cash_animations.append({
+                        "text": f"-${int(round(self.tank_session['cost']))}",
+                        "color": (255, 40, 40),
+                        "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                        "alpha": 200,
+                        "lifetime": 0.7
+                    })
+                self.tank_session = None
+        else:
+            # Not on pump or can't refuel
+            if self.tank_session and self.tank_session["fuel_added"] > 0:
+                self.money -= self.tank_session["cost"]
+                self.cash_animations.append({
+                    "text": f"-${int(round(self.tank_session['cost']))}",
+                    "color": (255, 40, 40),
+                    "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                    "alpha": 200,
+                    "lifetime": 0.7
+                })
+            self.tank_session = None
+
+        # If tank is full during refueling, finish session
+        if self.tank_session and self.car.fuel >= self.car.max_fuel and self.tank_session["fuel_added"] > 0:
+            self.money -= self.tank_session["cost"]
+            self.cash_animations.append({
+                "text": f"-${int(round(self.tank_session['cost']))}",
+                "color": (255, 40, 40),
+                "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                "alpha": 200,
+                "lifetime": 0.7
+            })
+            self.tank_session = None
 
         # Draw game map
         screen.fill((50, 50, 50))
