@@ -10,6 +10,7 @@ class Game:
         self.car = CarSprite(self.main.screen.get_width() // 2, self.main.screen.get_height() // 2)
         self.sprites.add(self.car)
         self.font = pygame.font.SysFont(None, 36)
+        self.brake_pressed = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))  # path to src
 
@@ -76,6 +77,9 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.main.quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.car.toggle_handbrake()
 
         # Update
 
@@ -84,6 +88,7 @@ class Game:
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
 
         keys = pygame.key.get_pressed()
+        self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
 
         font = pygame.font.SysFont("None", 50)
@@ -134,4 +139,14 @@ class Game:
 
         screen.blit(fps_text, (0, 0))
 
+        # --- UI Indicators ---
+        if self.car.is_handbraking():
+            self._draw_text("Handbrake ON", 20, 20, (255, 100, 100))
+        if self.brake_pressed:
+            self._draw_text("Brake ON", 20, 60, (255, 255, 100))
+
         pygame.display.flip()
+
+    def _draw_text(self, text, x, y, color=(255, 255, 255)):
+        surface = self.font.render(text, True, color)
+        self.main.screen.blit(surface, (x, y))
