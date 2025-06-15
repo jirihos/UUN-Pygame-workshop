@@ -201,7 +201,7 @@ class Game:
 
         # Refueling logic
         self.is_refueling = False
-        if self.is_on_pump_tile() and self.car.is_handbrake():
+        if self.is_on_pump_tile() and self.car.is_handbraking():
             if keys[pygame.K_f]:
                 self.is_refueling = True
                 if self.car.fuel < self.car.max_fuel:
@@ -429,7 +429,10 @@ class Game:
             font_float = pygame.font.Font(self.font_path, 28)
             surface = font_float.render(anim["text"], True, (0, 255, 100))
             surface.set_alpha(anim["alpha"])
-            self.main.screen.blit(surface, anim["pos"])
+            screen_x = anim["pos"].x - self.car.pos.x + self.main.WIDTH // 2
+            screen_y = anim["pos"].y - self.car.pos.y + self.main.HEIGHT // 2
+            self.main.screen.blit(surface, (screen_x, screen_y))
+
 
             # Animate upward
             anim["pos"].y -= 0.5
