@@ -23,7 +23,7 @@ class CarSprite(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
         
         self.collision_width = size[0] * 0.5
-        self.collision_height = size[1] * 0.85
+        self.collision_height = size[1] * 1.0
 
 
         self.pos = pygame.Vector2(x, y)
