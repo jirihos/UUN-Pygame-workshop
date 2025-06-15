@@ -5,6 +5,9 @@ import random
 from car_sprite import CarSprite
 from tiles import tile_dict
 from job import Job
+from entities.passenger import Passenger
+from entities.passenger_manager import PassengerManager
+
 
 class Game:
     """The actual game. Renders the map, HUD, and contains the main game logic.
@@ -43,6 +46,9 @@ class Game:
         self.hunger = 100
         self.max_hunger = 100
         self.is_eating = False
+        self.passenger_group = pygame.sprite.Group()
+        self.passenger_sprite = None
+        self.passenger_visible = False
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -120,6 +126,9 @@ class Game:
                 elif tile_id == FOOD_TILE:
                     self.food_tile_locations.append((x, y))
         
+
+        self.current_job = None
+        self.job_state = None
         self.new_job()
 
         # === Minimap ===
@@ -139,6 +148,13 @@ class Game:
 
         self.show_fps = False  # FPS display toggle
 
+        self.passenger_group = pygame.sprite.Group()
+        self.passenger_sprite_sheet = pygame.image.load("src/entities/RPG_assets.png").convert_alpha()
+        self.passenger_sprite = None
+        self.passenger_visible = False
+
+        self.passenger_manager = PassengerManager(self.passenger_sprite_sheet)
+
     def new_job(self):
         """Creates a new job by randomly selecting two pickup locations."""
 
@@ -150,8 +166,13 @@ class Game:
         
         # Randomly select two different pickup locations for pickup and delivery
         locs = random.sample(self.pickup_tile_locations, 2)
-        self.current_job = Job(locs[0], locs[1])
-        self.job_state = "pickup"
+        self.pending_job = Job(locs[0], locs[1])
+        print(f"[JOB] New job created: {locs}")
+
+        """print("Job State:", self.job_state)
+        print("Pending Job:", self.pending_job)
+        print("Current Job:", self.current_job)"""
+
 
     def _create_minimap(self):
         """Creates the minimap surface from the tile_map."""
@@ -230,6 +251,7 @@ class Game:
         """
 
         screen = self.main.screen
+        self.passenger_manager.update(dt)
 
         # Handle events (quit, handbrake, menu, FPS toggle, job accept)
         for event in pygame.event.get():
@@ -242,20 +264,20 @@ class Game:
                     from scenes.mainmenu import MainMenu
                     self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
-                    self.show_fps = not self.show_fps  # Toggle FPS display
-            if self.pending_job and event.key == pygame.K_RETURN:
-                self.current_job = self.pending_job
-                self.job_state = "pickup"
-                self.pending_job = None
-                print("[JOB] Accepted new job.")
+                    self.show_fps = not self.show_fps
+                elif event.key == pygame.K_RETURN and self.pending_job:
+                    self.current_job = self.pending_job
+                    self.job_state = "pickup"
+                    self.pending_job = None
+                    print("[JOB] Accepted new job.")
 
-        # Calculate camera position to center the car
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
 
         keys = pygame.key.get_pressed()
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
+        self.passenger_group.update(dt)
 
         # === Job Progress Logic ===
         if self.current_job and self.job_state:
@@ -263,12 +285,15 @@ class Game:
                 # If at pickup location, handbrake is engaged, and car is stopped, switch to dropoff
                 if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger picked up.")
+                    self.passenger_manager.remove_passenger()
                     self.job_state = "dropoff"
 
             elif self.job_state == "dropoff":
                 # If at delivery location, handbrake is engaged, and car is stopped, complete job and start new one
                 if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
+
+                    # Calculate payment
                     base_rate = 0.5  
                     distance = self.current_job.distance(self.tile_size) / 100
                     earned = int(base_rate * distance)
@@ -285,15 +310,18 @@ class Game:
                     if len(self.cash_animations) > 5:
                         self.cash_animations.pop(0)
 
+                    # Clean up job
+                    self.passenger_manager.remove_passenger()
+                    self.job_state = None
                     self.new_job()
-                    self.job_state = "pickup"  # Immediately set to pickup for the new job
 
-        if self.pending_job and event.key == pygame.K_RETURN:
-            self.current_job = self.pending_job
-            self.job_state = "pickup"
-            self.pending_job = None
-            print("[JOB] Accepted new job.")
 
+        # === Passenger Spawning via PassengerManager ===
+        if self.job_state == "pickup" and not self.passenger_manager.visible:
+            tile_x, tile_y = self.current_job.pickup_tile_loc
+            pixel_x = tile_x * self.tile_size
+            pixel_y = tile_y * self.tile_size
+            self.passenger_manager.start_entry_animation(pixel_x, pixel_y)
 
         # Refueling logic (now only allowed when no passenger is in the car)
         self.is_refueling = False
@@ -618,7 +646,12 @@ class Game:
             # Show notification for new job
             self._draw_text("New Job Available! Press ENTER to accept.", 40, 60, (255, 255, 255), size=30)
 
+        self.passenger_manager.update(dt)
+        self.passenger_manager.draw(screen, camera_x, camera_y)
 
+        # Draw the game objects
+        self.sprites.draw(screen)
+        self.passenger_group.draw(screen)  # Draw the passenger
 
         pygame.display.flip()
 
