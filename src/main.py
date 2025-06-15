@@ -5,13 +5,14 @@ from scenes.game import Game
 
 class Main():
     def __init__(self):
-        self.WIDTH = 1200
-        self.HEIGHT = 800
+        self.WIDTH = 1920
+        self.HEIGHT = 1080
         self.FPS = 60
 
         pygame.init()
 
-        self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.WIDTH, self.HEIGHT = self.screen.get_size()
         pygame.display.set_caption("Ruber Taxi Service")
 
         self.clock = pygame.time.Clock()
