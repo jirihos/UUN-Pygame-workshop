@@ -48,6 +48,8 @@ class CarSprite(pygame.sprite.Sprite):
         self.max_fuel = 100
         self.fuel = 100
 
+        self.collision_points = None
+
     def update(self, game, camera_x, camera_y, keys=None):
         """Update the car's position, speed, and angle based on input and game state.
         Args:
@@ -104,12 +106,14 @@ class CarSprite(pygame.sprite.Sprite):
             half_height = self.collision_height / 2
 
             # Define bounding box collision corners
+            new_vector = pygame.Vector2(new_x, new_y)
             collision_points = [
-                (new_x - half_width, new_y - half_height),
-                (new_x + half_width, new_y - half_height),
-                (new_x - half_width, new_y + half_height),
-                (new_x + half_width, new_y + half_height),
+                new_vector + (pygame.Vector2(20, 45).rotate(-self.angle)),
+                new_vector + (pygame.Vector2(-20, 45).rotate(-self.angle)),
+                new_vector + (pygame.Vector2(20, -44).rotate(-self.angle)),
+                new_vector + (pygame.Vector2(-20, -44).rotate(-self.angle)),
             ]
+            self.collision_points = collision_points
 
             if all(game.is_walkable(px, py) for px, py in collision_points):
                 self.pos.x = new_x

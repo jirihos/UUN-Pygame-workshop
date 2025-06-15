@@ -755,6 +755,12 @@ class Game:
             timer_rect = timer_surface.get_rect(center=(self.main.WIDTH // 2, 40))
             screen.blit(timer_surface, timer_rect)
 
+        # Render car hitbox for debugging
+        if False and self.car.collision_points is not None:
+            for point in self.car.collision_points:
+                point = point - pygame.Vector2(camera_x, camera_y)
+                pygame.draw.circle(screen, (240, 0, 0), point, 5)
+
         pygame.display.flip()
 
     def save_high_score(self):
