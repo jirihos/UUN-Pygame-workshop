@@ -34,6 +34,16 @@ Modules
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: entities.passenger_manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: entities.passenger
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: scenes.game
    :members:
    :undoc-members:
