@@ -137,7 +137,7 @@ class Game:
         self.brake_pressed = keys[pygame.K_x]
         self.car.update(self, camera_x, camera_y, keys)
 
-        screen.fill((255, 255, 255))
+        screen.fill((50, 50, 50))
 
         for y, row in enumerate(self.tile_map):
             for x, tile_id in enumerate(row):
