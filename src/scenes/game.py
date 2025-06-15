@@ -1,8 +1,10 @@
 import pygame
 import os
 import math
+import random
 from car_sprite import CarSprite
 from tiles import tile_dict
+from job import Job
 
 class Game:
     def __init__(self, main):
@@ -55,6 +57,24 @@ class Game:
         self.MAP_WIDTH = len(self.tile_map[0]) * self.tile_size
         self.MAP_HEIGHT = len(self.tile_map) * self.tile_size
 
+        # find pickup tile locations
+        self.pickup_tile_locations = []
+        for y, row in enumerate(self.tile_map):
+            for x, tile_id in enumerate(row):
+                PICKUP_TILE = 851
+                if tile_id == PICKUP_TILE:
+                    self.pickup_tile_locations.append((x, y))
+        
+        self.new_job()
+
+    def new_job(self):
+        if len(self.pickup_tile_locations) < 2:
+            self.current_job = None
+            return
+        
+        locs = random.sample(self.pickup_tile_locations, 2)
+        self.current_job = Job(locs[0], locs[1])
+
     def is_walkable(self, x, y): 
         tile_x = int(x) // self.tile_size
         tile_y = int(y) // self.tile_size
@@ -89,9 +109,13 @@ class Game:
                     screen.blit(tile_img, pos)
         self.sprites.draw(screen)
 
-        screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
-
         self.draw_dashboard()
+
+        # for debugging
+        screen.blit(self.font.render(f"FPS: {self.main.clock.get_fps():.0f}", True, (250, 80, 100)), (0, 0))
+        if self.current_job is not None:
+            screen.blit(self.font.render(f"Pickup tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (200, 0))
+            screen.blit(self.font.render(f"Delivery tile: {self.current_job.pickup_tile_loc}", True, (250, 80, 100)), (400, 0))
 
         pygame.display.flip()
 
