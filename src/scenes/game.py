@@ -19,6 +19,7 @@ class Game:
         self.is_refueling = False
         self.cash_animations = []
         self.pending_job = None
+        self.customers_served = 0  # Track number of delivered customers (score)
 
         base_path = os.path.dirname(os.path.dirname(__file__))
 
@@ -195,8 +196,10 @@ class Game:
                     distance = self.current_job.distance(self.tile_size) / 100
                     earned = int(base_rate * distance)
                     self.money += earned
+                    self.customers_served += 1  # Increment score
                     self.cash_animations.append({
                         "text":f"+${earned}",
+                        "color": (0, 255, 100),  # green for earning
                         "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 50),
                         "alpha": 255,
                         "lifetime": 1.0 
@@ -215,13 +218,27 @@ class Game:
             print("[JOB] Accepted new job.")
 
 
-        # Refueling logic
+        # Refueling logic (now only allowed when no passenger is in the car)
         self.is_refueling = False
-        if self.is_on_pump_tile() and self.car.is_handbraking():
+        FUEL_PRICE = 2  # price per unit of fuel
+        can_refuel = not (self.current_job and self.job_state == "dropoff")  # Only allow refuel if not in dropoff phase (no passenger)
+        if can_refuel and self.is_on_pump_tile() and self.car.is_handbraking():
             if keys[pygame.K_f]:
                 self.is_refueling = True
-                if self.car.fuel < self.car.max_fuel:
-                    self.car.fuel = min(self.car.fuel + 0.5, self.car.max_fuel)
+                fuel_needed = self.car.max_fuel - self.car.fuel
+                if self.car.fuel < self.car.max_fuel and self.money >= FUEL_PRICE * 0.5:
+                    fuel_to_add = min(0.5, fuel_needed)
+                    cost = FUEL_PRICE * fuel_to_add
+                    if self.money >= cost:
+                        self.car.fuel = min(self.car.fuel + fuel_to_add, self.car.max_fuel)
+                        self.money -= cost
+                        self.cash_animations.append({
+                            "text":f"-${int(cost)}",
+                            "color": (255, 40, 40),  # red for spending
+                            "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 80),
+                            "alpha": 200,
+                            "lifetime": 0.7 
+                        })
 
         # Draw game map
         screen.fill((50, 50, 50))
@@ -315,7 +332,7 @@ class Game:
             self.main.screen.blit(text_surface, text_rect)
 
         # REFUEL MESSAGE
-        if self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
+        if can_refuel and self.is_on_pump_tile() and self.car.is_handbraking() and self.car.fuel < self.car.max_fuel:
             # Show "Hold F to refuel" message above the dashboard
             message = "Hold F to refuel"
             font = pygame.font.Font(self.font_path, 40)
@@ -465,7 +482,7 @@ class Game:
             self.main.screen.blit(p_surface, (px, py))
 
         # === Display Cash ===
-        cash_text = f"${self.money}"
+        cash_text = f"${int(self.money)}"
         font_cash = pygame.font.Font(self.font_path, 36)
 
         cash_surface = font_cash.render(cash_text, True, (255, 255, 255))
@@ -477,15 +494,26 @@ class Game:
         self.main.screen.blit(cash_shadow, (cash_x + 2, cash_y + 2))
         self.main.screen.blit(cash_surface, (cash_x, cash_y))
 
+        # === Display Score (Customers Served) ===
+        score_text = f"Score: {self.customers_served}"
+        font_score = pygame.font.Font(self.font_path, 28)
+        score_surface = font_score.render(score_text, True, (252, 186, 3))
+        score_shadow = font_score.render(score_text, True, (40, 40, 40))
+        score_x = 20
+        score_y = cash_y + cash_surface.get_height() + 8
+        self.main.screen.blit(score_shadow, (score_x + 2, score_y + 2))
+        self.main.screen.blit(score_surface, (score_x, score_y))
+
         # === Floating Money Animation ===
         for anim in self.cash_animations[:]:
             font_float = pygame.font.Font(self.font_path, 28)
-            surface = font_float.render(anim["text"], True, (0, 255, 100))
+            # Use color from animation dict, fallback to green if not present
+            color = anim.get("color", (0, 255, 100))
+            surface = font_float.render(anim["text"], True, color)
             surface.set_alpha(anim["alpha"])
             screen_x = anim["pos"].x - self.car.pos.x + self.main.WIDTH // 2
             screen_y = anim["pos"].y - self.car.pos.y + self.main.HEIGHT // 2
             self.main.screen.blit(surface, (screen_x, screen_y))
-
 
             # Animate upward
             anim["pos"].y -= 0.5
