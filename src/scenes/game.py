@@ -7,6 +7,8 @@ from tiles import tile_dict
 from job import Job
 
 class Game:
+    """The actual game. Renders the map, HUD, and contains the main game logic."""
+
     def __init__(self, main):
         self.main = main
         self.sprites = pygame.sprite.Group()
@@ -117,6 +119,8 @@ class Game:
         return False
 
     def loop(self, dt):
+        """Performs the Event, Update, Render cycle."""
+
         screen = self.main.screen
 
         for event in pygame.event.get():
