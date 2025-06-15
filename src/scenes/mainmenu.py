@@ -53,6 +53,9 @@ class MainMenu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.main.quit()
+            # Allow skipping intro with mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN and self.intro_timer > 0:
+                self.intro_timer = 0
 
         # Update
         self.intro_timer -= dt
