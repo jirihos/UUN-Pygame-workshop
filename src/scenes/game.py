@@ -19,7 +19,6 @@ class Game:
         self.money = 0 
         self.is_refueling = False
         self.cash_animations = []
-        self.pending_job = None
         self.passenger_group = pygame.sprite.Group()
         self.passenger_sprite = None
         self.passenger_visible = False
@@ -82,7 +81,9 @@ class Game:
                     self.pickup_tile_locations.append((x, y))
                 elif tile_id == PUMP_TILE:
                     self.pump_tile_locations.append((x, y))
-        
+
+        self.current_job = None
+        self.job_state = None
         self.new_job()
 
         # === Minimap ===
@@ -108,8 +109,13 @@ class Game:
             return
         
         locs = random.sample(self.pickup_tile_locations, 2)
-        self.current_job = Job(locs[0], locs[1])
-        self.job_state = "pickup"
+        self.pending_job = Job(locs[0], locs[1])
+        print(f"[JOB] New job created: {locs}")
+
+        print("Job State:", self.job_state)
+        print("Pending Job:", self.pending_job)
+        print("Current Job:", self.current_job)
+
 
     def _create_minimap(self):
         """Creates the minimap surface from the tile_map."""
@@ -164,13 +170,12 @@ class Game:
                     from scenes.mainmenu import MainMenu
                     self.main.current_scene = MainMenu(self.main, skip_intro=True)
                 elif event.key == pygame.K_l:
-                    self.show_fps = not self.show_fps  # Toggle FPS display
-            if self.pending_job and event.key == pygame.K_RETURN:
-                self.current_job = self.pending_job
-                self.job_state = "pickup"
-                self.pending_job = None
-                print("[JOB] Accepted new job.")
-
+                    self.show_fps = not self.show_fps
+                elif event.key == pygame.K_RETURN and self.pending_job:
+                    self.current_job = self.pending_job
+                    self.job_state = "pickup"
+                    self.pending_job = None
+                    print("[JOB] Accepted new job.")
 
         camera_x = max(0, min(self.car.pos.x - self.main.WIDTH // 2, self.MAP_WIDTH - self.main.WIDTH))
         camera_y = max(0, min(self.car.pos.y - self.main.HEIGHT // 2, self.MAP_HEIGHT - self.main.HEIGHT))
@@ -180,63 +185,47 @@ class Game:
         self.car.update(self, camera_x, camera_y, keys)
         self.passenger_group.update(dt)
 
-
         # === Job Progress Logic ===
         if self.current_job and self.job_state:
             if self.job_state == "pickup":
-                if (
-                    self.is_at_tile(self.current_job.pickup_tile_loc)
-                    and self.car.is_handbraking()
-                    and abs(self.car.speed) < 0.2
-                ):
+                if self.is_at_tile(self.current_job.pickup_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger picked up.")
-                    self.passenger_manager.start_entry_animation()
+                    self.passenger_manager.remove_passenger()
                     self.job_state = "dropoff"
 
-                    if self.passenger_sprite:
-                        self.passenger_sprite.kill()
-                        self.passenger_sprite = None
-                        self.passenger_visible = False
-
             elif self.job_state == "dropoff":
-                if (
-                    self.is_at_tile(self.current_job.delivery_tile_loc)
-                    and self.car.is_handbraking()
-                    and abs(self.car.speed) < 0.2
-                ):
+                if self.is_at_tile(self.current_job.delivery_tile_loc) and self.car.is_handbraking() and abs(self.car.speed) < 0.2:
                     print("[JOB] Passenger dropped off. Job complete.")
-                    base_rate = 0.5
+
+                    # Calculate payment
+                    base_rate = 0.5  
                     distance = self.current_job.distance(self.tile_size)
                     earned = int(base_rate * distance)
                     self.money += earned
 
+                    # Create cash animation
                     self.cash_animations.append({
                         "text": f"+${earned}",
                         "pos": pygame.Vector2(self.car.pos.x, self.car.pos.y - 50),
                         "alpha": 255,
-                        "lifetime": 1.0
+                        "lifetime": 1.0 
                     })
 
                     if len(self.cash_animations) > 5:
                         self.cash_animations.pop(0)
 
-                    self.new_job()
+                    # Clean up job
+                    self.passenger_manager.remove_passenger()
                     self.job_state = None
+                    self.new_job()
+
 
         # === Passenger Spawning via PassengerManager ===
-        if self.job_state == "pickup" and not self.passenger_visible:
+        if self.job_state == "pickup" and not self.passenger_manager.visible:
             tile_x, tile_y = self.current_job.pickup_tile_loc
             pixel_x = tile_x * self.tile_size
             pixel_y = tile_y * self.tile_size
             self.passenger_manager.start_entry_animation(pixel_x, pixel_y)
-            self.passenger_visible = True
-
-        # === Accepting a New Job ===
-        if self.pending_job and event.key == pygame.K_RETURN:
-            self.current_job = self.pending_job
-            self.job_state = "pickup"
-            self.pending_job = None
-            print("[JOB] Accepted new job.")
 
         # Refueling logic
         self.is_refueling = False
